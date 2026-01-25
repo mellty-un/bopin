@@ -80,7 +80,7 @@ class _DendaCardState extends State<DendaCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.denda["name"] ?? "Unknown",
+                  widget.denda["name"] ?? "",
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 22,
@@ -89,7 +89,7 @@ class _DendaCardState extends State<DendaCard> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _formatAmount(widget.denda["amount"]),
+                  _formatAmount(widget.denda[""]),
                   style: const TextStyle(
                     fontSize: 18,
                     color: Color(0xFF666666),

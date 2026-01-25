@@ -19,8 +19,24 @@ class _AlatDialogState extends State<AlatDialog> {
   final _jumlahController = TextEditingController();
   final _tersediaController = TextEditingController();
 
-  final List<String> _kondisiOptions = ['Baik', 'Rusak', 'Sedang', 'Perlu Perbaikan'];
+  final List<String> _kondisiOptions = [
+    'Baik',
+    'Rusak',
+    'Sedang',
+    'Perlu Perbaikan',
+  ];
   String? _selectedKondisi;
+
+  final List<String> _kategoriOptions = [
+    'Alat Masak',
+    'Alat Potong',
+    'Alat Pastry',
+    'Alat Dekorasi',
+
+    'Lainnya',
+  ];
+
+  String? _selectedKategori;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -32,14 +48,15 @@ class _AlatDialogState extends State<AlatDialog> {
     super.initState();
     if (widget.isEdit && widget.alat != null) {
       _namaController.text = widget.alat!['nama'] ?? '';
-      _kategoriController.text = widget.alat!['kategori'] ?? '';
       _jumlahController.text = widget.alat!['jumlah']?.toString() ?? '';
       _tersediaController.text = widget.alat!['tersedia']?.toString() ?? '';
       _selectedKondisi = widget.alat!['kondisi'] ?? 'Baik';
+      _selectedKategori = widget.alat!['kategori'];
     } else {
       _selectedKondisi = 'Baik';
-      _jumlahController.text = '1';
-      _tersediaController.text = '1';
+      _selectedKategori = _kategoriOptions.first;
+      _jumlahController.text = '';
+      _tersediaController.text = '';
     }
   }
 
@@ -60,7 +77,7 @@ class _AlatDialogState extends State<AlatDialog> {
         maxHeight: 1800,
         imageQuality: 85,
       );
-      
+
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
@@ -68,9 +85,9 @@ class _AlatDialogState extends State<AlatDialog> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal memilih gambar')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Gagal memilih gambar')));
     }
   }
 
@@ -92,11 +109,13 @@ class _AlatDialogState extends State<AlatDialog> {
       if (!mounted) return;
 
       Navigator.of(context).pop(true);
-      
+
       // Show success popup
       SuccessPopup.show(
         context,
-        widget.isEdit ? 'Alat berhasil diupdate!' : 'Alat berhasil ditambahkan!',
+        widget.isEdit
+            ? 'Alat berhasil diupdate!'
+            : 'Alat berhasil ditambahkan!',
       );
     } catch (e) {
       if (!mounted) return;
@@ -131,10 +150,13 @@ class _AlatDialogState extends State<AlatDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: Color(0xFFEBEFF2),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        constraints: const BoxConstraints(maxWidth: 450, maxHeight: 650),
+        width: MediaQuery.of(context).size.width * 0.98,
+        constraints: const BoxConstraints(maxWidth: 650),
+
         child: Form(
           key: _formKey,
           autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -187,19 +209,24 @@ class _AlatDialogState extends State<AlatDialog> {
                   textCapitalization: TextCapitalization.words,
                   style: const TextStyle(fontSize: 14),
                   decoration: InputDecoration(
-                    hintText: 'Masukkan nama alat',
+                    filled: true,
+                    fillColor: Colors.white,
+                    hintText: '',
                     hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
+                      borderSide: BorderSide(color: Color(0xFFEBEFF2)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
+                      borderSide: BorderSide(color: Color(0xFFEBEFF2)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3A587A), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF3A587A),
+                        width: 1.5,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -218,96 +245,68 @@ class _AlatDialogState extends State<AlatDialog> {
 
                 Row(
                   children: [
-                    // Kategori
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
                             'Kategori',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
                           const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _kategoriController,
-                            textCapitalization: TextCapitalization.words,
-                            style: const TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: 'Kategori',
-                              hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF3A587A), width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 14,
-                              ),
-                              errorStyle: const TextStyle(fontSize: 11),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Wajib diisi';
-                              }
-                              return null;
+                          DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: _selectedKategori,
+                            items: _kategoriOptions.map((e) {
+                              return DropdownMenuItem(
+                                value: e,
+                                child: Text(e, overflow: TextOverflow.ellipsis),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() => _selectedKategori = value);
                             },
+                            decoration: _inputDecoration(),
+                            dropdownColor: Colors.white,
+                            validator: (value) =>
+                                value == null ? 'Kategori wajib dipilih' : null,
                           ),
                         ],
                       ),
                     ),
+
                     const SizedBox(width: 12),
-                    // Kondisi
+
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
                             'Kondisi',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
+                            isExpanded: true,
                             value: _selectedKondisi,
-                            style: const TextStyle(fontSize: 14, color: Colors.black87),
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF3A587A), width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 14,
-                              ),
-                              errorStyle: const TextStyle(fontSize: 11),
-                            ),
-                            items: _kondisiOptions.map((String kondisi) {
-                              return DropdownMenuItem<String>(
-                                value: kondisi,
-                                child: Text(kondisi, style: const TextStyle(fontSize: 13)),
+                            items: _kondisiOptions.map((e) {
+                              return DropdownMenuItem(
+                                value: e,
+                                child: Text(e, overflow: TextOverflow.ellipsis),
                               );
                             }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                _selectedKondisi = newValue;
-                              });
+                            onChanged: (value) {
+                              setState(() => _selectedKondisi = value);
                             },
-                            validator: (value) => _validateKondisi(value),
+                            decoration: _inputDecoration(),
+                            dropdownColor: Colors.white,
+                            validator: _validateKondisi,
                           ),
                         ],
                       ),
@@ -325,7 +324,10 @@ class _AlatDialogState extends State<AlatDialog> {
                         children: [
                           const Text(
                             'Jumlah',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           TextFormField(
@@ -333,19 +335,31 @@ class _AlatDialogState extends State<AlatDialog> {
                             keyboardType: TextInputType.number,
                             style: const TextStyle(fontSize: 14),
                             decoration: InputDecoration(
-                              hintText: '0',
-                              hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                              filled: true,
+                              fillColor: Colors.white,
+                              hintText: '',
+                              hintStyle: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[400],
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderSide: BorderSide(
+                                  color: Color(0xFF3A587A),
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderSide: BorderSide(
+                                  color: Color(0xFF3A587A),
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF3A587A), width: 1.5),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF3A587A),
+                                  width: 1.5,
+                                ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 14,
@@ -366,7 +380,10 @@ class _AlatDialogState extends State<AlatDialog> {
                         children: [
                           const Text(
                             'Tersedia',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           TextFormField(
@@ -374,19 +391,31 @@ class _AlatDialogState extends State<AlatDialog> {
                             keyboardType: TextInputType.number,
                             style: const TextStyle(fontSize: 14),
                             decoration: InputDecoration(
-                              hintText: '0',
-                              hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                              filled: true,
+                              fillColor: Colors.white,
+                              hintText: '',
+                              hintStyle: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[400],
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderSide: BorderSide(
+                                  color: Color(0xFFEBEFF2),
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderSide: BorderSide(
+                                  color: Color(0xFFEBEFF2),
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF3A587A), width: 1.5),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF3A587A),
+                                  width: 1.5,
+                                ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 14,
@@ -402,52 +431,61 @@ class _AlatDialogState extends State<AlatDialog> {
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                // Form Image
                 const Text(
                   'Image',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
-                InkWell(
-                  onTap: _pickImage,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: double.infinity,
-                    height: 140,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey.shade50,
-                    ),
-                    child: _selectedImage != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              _selectedImage!,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.add_photo_alternate_outlined,
-                                size: 45,
-                                color: Colors.grey.shade400,
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'Pilih gambar',
-                                style: TextStyle(
-                                  color: Colors.grey.shade500,
-                                  fontSize: 14,
+
+                Align(
+                  alignment: Alignment.center,
+                  child: InkWell(
+                    onTap: _pickImage,
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 220,
+                      height: 140,
+                      child: Container(
+                        
+                        decoration: BoxDecoration(
+                         
+                          border: Border.all(color: Color(0xFFEBEFF2)),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                        ),
+                        child: _selectedImage != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  _selectedImage!,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.add_photo_alternate_outlined,
+                                      size: 45,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Pilih gambar',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                      ),
+                    ),
                   ),
                 ),
+
                 const SizedBox(height: 24),
 
                 // Tombol Batal dan Simpan
@@ -532,7 +570,8 @@ class DeleteAlatConfirmationDialog extends StatefulWidget {
       _DeleteAlatConfirmationDialogState();
 }
 
-class _DeleteAlatConfirmationDialogState extends State<DeleteAlatConfirmationDialog> {
+class _DeleteAlatConfirmationDialogState
+    extends State<DeleteAlatConfirmationDialog> {
   bool _isDeleting = false;
 
   Future<void> _handleDelete() async {
@@ -545,7 +584,7 @@ class _DeleteAlatConfirmationDialogState extends State<DeleteAlatConfirmationDia
       if (!mounted) return;
 
       Navigator.of(context).pop(true);
-      
+
       // Show success popup
       SuccessPopup.show(context, 'Alat berhasil dihapus!');
     } catch (e) {
@@ -568,10 +607,7 @@ class _DeleteAlatConfirmationDialogState extends State<DeleteAlatConfirmationDia
           children: [
             const Text(
               "Hapus",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
@@ -579,10 +615,7 @@ class _DeleteAlatConfirmationDialogState extends State<DeleteAlatConfirmationDia
             Text(
               'Apakah kamu yakin ingin menghapus alat ini?',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 20),
 
@@ -590,10 +623,12 @@ class _DeleteAlatConfirmationDialogState extends State<DeleteAlatConfirmationDia
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _isDeleting ? null : () => Navigator.pop(context),
+                    onPressed: _isDeleting
+                        ? null
+                        : () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: Colors.grey.shade400),
+                      side: BorderSide(color: Color(0xFFEBEFF2)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -603,7 +638,7 @@ class _DeleteAlatConfirmationDialogState extends State<DeleteAlatConfirmationDia
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
+                        color: Color(0xFFEBEFF2),
                       ),
                     ),
                   ),
@@ -654,6 +689,7 @@ class SuccessPopup {
     showDialog(
       context: context,
       barrierDismissible: false,
+
       barrierColor: Colors.black.withOpacity(0.7),
       builder: (ctx) {
         Future.delayed(const Duration(seconds: 2), () {
@@ -716,4 +752,25 @@ class SuccessPopup {
       },
     );
   }
+}
+
+InputDecoration _inputDecoration() {
+  return InputDecoration(
+    filled: true,
+    fillColor: Colors.white,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Color(0xFF3A587A)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Color(0xFF3A587A)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Color(0xFF3A587A), width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    errorStyle: const TextStyle(fontSize: 11),
+  );
 }

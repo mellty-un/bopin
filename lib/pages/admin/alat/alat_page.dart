@@ -256,7 +256,6 @@ class _AlatPageState extends State<AlatPage> {
                 },
               ),
 
-            // Pesan jika tidak ada data
             if (filteredAlatList.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 50),

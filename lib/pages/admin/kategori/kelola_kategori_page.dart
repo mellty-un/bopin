@@ -148,7 +148,7 @@ key: _scaffoldKey,
                           child: TextField(
                             controller: _searchController,
                             decoration: const InputDecoration(
-                              hintText: "Search kategori...",
+                              hintText: "Search",
                               border: InputBorder.none,
                             ),
                           ),

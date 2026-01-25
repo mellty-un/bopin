@@ -121,7 +121,7 @@ class _KategoriDialogState extends State<KategoriDialog> {
                   ),
 
                 const Text(
-                  'Nama Kategori',
+                  'Nama ',
                   style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
@@ -129,7 +129,7 @@ class _KategoriDialogState extends State<KategoriDialog> {
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: 'Masukkan nama kategori',
+                    hintText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -252,7 +252,7 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Text(
-              "Hapus Kategori",
+              "",
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -263,7 +263,7 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
             const SizedBox(height: 12),
 
             Text(
-              'Apakah Anda yakin ingin menghapus "${widget.kategoriName}"?',
+              ' "${widget.kategoriName}"?',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15, color: Color(0xFF4B5563)),
             ),

@@ -63,7 +63,7 @@ key: _scaffoldKey,
 
               Container(
                 width: double.infinity,
-                height: 154,
+                height: 160,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppColor.primary,
@@ -88,7 +88,7 @@ key: _scaffoldKey,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       'kelola sistem peminjaman dengan mudah\ndan efisien',
                       style: TextStyle(

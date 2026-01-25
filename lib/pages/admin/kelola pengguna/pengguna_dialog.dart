@@ -31,10 +31,10 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
     if (widget.isEdit && widget.pengguna != null) {
       _nameController.text = widget.pengguna!['name'] ?? '';
       _emailController.text = widget.pengguna!['email'] ?? '';
-      _passwordController.text = ''; // Password dikosongkan saat edit
+      _passwordController.text = '';
       _selectedRole = widget.pengguna!['role'] ?? 'Peminjam';
     } else {
-      _selectedRole = 'Peminjam'; // Default value
+      _selectedRole = 'Peminjam'; 
     }
   }
 
@@ -102,7 +102,6 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header dialog
                 Center(
                   child: Text(
                     widget.isEdit ? 'Edit Pengguna' : 'Tambah Pengguna',
@@ -116,7 +115,6 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
 
                 const SizedBox(height: 24),
 
-                // Pesan error
                 if (_errorMessage != null)
                   Container(
                     width: double.infinity,
@@ -144,7 +142,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: 'Masukkan nama pengguna',
+                    hintText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -199,7 +197,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    hintText: 'example@gmail.com',
+                    hintText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -223,7 +221,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                   controller: _passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
-                    hintText: widget.isEdit ? 'Biarkan kosong jika tidak diubah' : 'Masukkan kata sandi',
+                    hintText: widget.isEdit ? '' : '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),

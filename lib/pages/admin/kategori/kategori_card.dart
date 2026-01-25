@@ -1,3 +1,4 @@
+import 'package:aplikasi_peminjaman_alat/core/theme/app_color.dart';
 import 'package:flutter/material.dart';
 
 class KategoriCard extends StatefulWidget {
@@ -64,6 +65,7 @@ class _KategoriCardState extends State<KategoriCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        
         boxShadow: [
           BoxShadow(
             color: Colors.black12.withOpacity(0.15),
@@ -71,11 +73,14 @@ class _KategoriCardState extends State<KategoriCard> {
             offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(
+          color: AppColor.primary,
+          width: 1,
+        )
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Nama Kategori (sisi kiri)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +98,9 @@ class _KategoriCardState extends State<KategoriCard> {
           ),
 
           Container(
+            
             decoration: BoxDecoration(
+              
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Colors.white),

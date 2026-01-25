@@ -23,16 +23,29 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
     });
   }
 
+  Color _getRoleColor(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return const Color(0xFF4CAF50);
+      case 'sangentadar':
+        return const Color(0xFF2196F3);
+      case 'samisama':
+        return const Color(0xFF9E9E9E);
+      default:
+        return const Color(0xFF9E9E9E);
+    }
+  }
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'peminjaman':
-        return const Color(0xFF4CAF50); 
+        return const Color(0xFF4CAF50);
       case 'pengembalian':
         return const Color(0xFF2196F3);
       case 'menunggu':
-        return const Color(0xFFFF9800); 
+        return const Color(0xFFFF9800);
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E);
     }
   }
 
@@ -48,10 +61,8 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
 
   @override
   Widget build(BuildContext context) {
-    String initial = widget.aktivitas["name"].toString().isNotEmpty
-        ? widget.aktivitas["name"][0].toUpperCase()
-        : "?";
-
+    String name = widget.aktivitas["name"] ?? "Unknown";
+    String role = widget.aktivitas["role"] ?? "samisama";
     String status = widget.aktivitas["status"] ?? "Peminjaman";
 
     return AnimatedContainer(
@@ -73,83 +84,110 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
         children: [
           // Header Card
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Avatar
+                // Avatar tanpa dot role indicator
                 Container(
-                  width: 70,
-                  height: 70,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF3A587A),
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3A587A),
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    initial,
+                    name.isNotEmpty ? name[0].toUpperCase() : "?",
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 40,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
 
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
 
-                // Nama dan Status
+                // Nama dan Status (sejajar)
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Nama saja
                       Text(
-                        widget.aktivitas["name"] ?? "Unknown",
+                        name,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 22,
+                          fontSize: 18,
                           color: Colors.black,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(status),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          status,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                      const SizedBox(height: 4),
+                      // Status dan Admin badge sejajar
+                      Row(
+                        children: [
+                          // Status badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(status),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              status,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                        ),
+                          // Admin badge di samping status
+                          if (role == 'admin') ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _getRoleColor(role),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Admin',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
                 ),
 
-                // Tombol Detail
+                // Tombol Expand
                 InkWell(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   onTap: _toggleExpansion,
                   child: Container(
-                    width: 46,
-                    height: 46,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3A587A),
-                      borderRadius: BorderRadius.circular(14),
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       isExpanded
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
-                      size: 28,
-                      color: Colors.white,
+                      size: 24,
+                      color: const Color(0xFF3A587A),
                     ),
                   ),
                 ),
@@ -157,6 +195,7 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
             ),
           ),
 
+          // Detail Section (Expanded)
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: Container(
@@ -172,69 +211,164 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Divider atas
+                  // Divider
                   Container(
                     height: 1,
                     color: Colors.grey[300],
                     margin: const EdgeInsets.only(bottom: 16),
                   ),
 
-                  // Alat
-                  _buildDetailRow(
-                    icon: Icons.build_outlined,
-                    label: 'Alat',
-                    value: widget.aktivitas["alat"] ?? '-',
+                  // Header Alat
+                  const Text(
+                    'Alat',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black87,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
 
-                  Padding(
-                    padding: const EdgeInsets.only(left: 32),
-                    child: Row(
-                      children: [
-                        Text(
-                          widget.aktivitas["alat"] ?? 'Panci',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
+                  // List Alat tanpa border container dan icon
+                  Column(
+                    children: [
+                      // Item Alat 1
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            // Hapus Icon di sini
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Panci',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const Spacer(),
+                            // Hapus Container dan ganti dengan Text biasa
+                            Text(
+                              widget.aktivitas["jumlah"]?.toString() ?? '1',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                        const Spacer(),
-                        Text(
-                          widget.aktivitas["jumlah"]?.toString() ?? '1',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      ),
+                      // Item Alat 2 (jika ada lebih dari 1)
+                      if (widget.aktivitas.containsKey('alat_tambahan'))
+                        Row(
+                          children: [
+                            // Hapus Icon di sini
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Panci',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const Spacer(),
+                            // Hapus Container dan ganti dengan Text biasa
+                            const Text(
+                              '1',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Garis pembatas horizontal
+                  Container(
+                    height: 1,
+                    color: Colors.grey[300],
+                    margin: const EdgeInsets.only(bottom: 16),
+                  ),
+
+                  // Section Tanggal
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 20,
+                        color: const Color(0xFF3A587A),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  _formatDate(
+                                          widget.aktivitas["tanggal_pinjam"]) ??
+                                      '20/01/2026',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Kembali : ${_formatDate(widget.aktivitas["tanggal_kembali"]) ?? '24/01/2026'}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Section Disetujui tanpa avatar
+                  const Text(
+                    'Disetujui oleh :',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.aktivitas["disetujui_oleh"] ?? 'Melati',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                  _buildDetailRow(
-                    icon: Icons.calendar_today_outlined,
-                    label: _formatDate(widget.aktivitas["tanggal_pinjam"]),
-                    value: 'Kembali: ${_formatDate(widget.aktivitas["tanggal_kembali"])}',
-                    isDate: true,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  _buildDetailRow(
-                    icon: Icons.person_outline,
-                    label: 'Disetujui oleh',
-                    value: widget.aktivitas["disetujui_oleh"] ?? '-',
-                  ),
-
-                  const SizedBox(height: 16),
-
+                  // Tombol Action
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
+                        // Action untuk tombol selesai
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3A587A),
@@ -243,14 +377,24 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 0,
+                        foregroundColor: Colors.white,
                       ),
-                      child: const Text(
-                        'Selesai',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Selesai',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -264,78 +408,6 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildDetailRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    bool isDate = false,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Icon
-        Container(
-          width: 24,
-          height: 24,
-          alignment: Alignment.center,
-          child: Icon(
-            icon,
-            size: 20,
-            color: const Color(0xFF3A587A),
-          ),
-        ),
-        
-        const SizedBox(width: 8),
-
-        // Content
-        Expanded(
-          child: isDate
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      value,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      value,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ],
     );
   }
 }

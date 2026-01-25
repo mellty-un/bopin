@@ -18,42 +18,48 @@ class _LogAktivitasState extends State<LogAktivitas> {
   List<Map<String, dynamic>> aktivitasList = [
     {
       "id": "1",
-      "name": "Chella",
+      "name": "Chelia",
+      "role": "samisama", // Menambahkan role
       "status": "Peminjaman",
       "alat": "Panci",
       "jumlah": 1,
-      "tanggal_pinjam": "2025-01-20",
-      "tanggal_kembali": "2025-01-24",
-      "disetujui_oleh": "-",
+      "alat_tambahan": true, // Untuk menampilkan alat kedua
+      "tanggal_pinjam": "2026-01-20",
+      "tanggal_kembali": "2026-01-24",
+      "disetujui_oleh": "Melati",
     },
     {
       "id": "2",
       "name": "Asel",
+      "role": "samisama", // Menambahkan role
       "status": "Peminjaman",
       "alat": "Panci",
       "jumlah": 1,
-      "tanggal_pinjam": "2025-01-20",
-      "tanggal_kembali": "2025-01-24",
-      "disetujui_oleh": "-",
+      "alat_tambahan": true,
+      "tanggal_pinjam": "2026-01-20",
+      "tanggal_kembali": "2026-01-24",
+      "disetujui_oleh": "Melati",
     },
     {
       "id": "3",
       "name": "Egi",
+      "role": "sangentadar", 
       "status": "Pengembalian",
       "alat": "Pisau",
       "jumlah": 1,
-      "tanggal_pinjam": "2025-01-15",
-      "tanggal_kembali": "2025-01-20",
+      "tanggal_pinjam": "2026-01-15",
+      "tanggal_kembali": "2026-01-20",
       "disetujui_oleh": "Nadya",
     },
     {
       "id": "4",
       "name": "Melati",
-      "status": "Admin",
+      "role": "admin", 
+      "status": "Peminjaman",
       "alat": "Blow Torch",
       "jumlah": 1,
-      "tanggal_pinjam": "2025-01-18",
-      "tanggal_kembali": "2025-01-22",
+      "tanggal_pinjam": "2026-01-18",
+      "tanggal_kembali": "2026-01-22",
       "disetujui_oleh": "Rotul",
     },
   ];
@@ -80,9 +86,10 @@ class _LogAktivitasState extends State<LogAktivitas> {
         final name = aktivitas['name']?.toString().toLowerCase() ?? '';
         final alat = aktivitas['alat']?.toString().toLowerCase() ?? '';
         final status = aktivitas['status']?.toString().toLowerCase() ?? '';
+        final role = aktivitas['role']?.toString().toLowerCase() ?? '';
 
         bool matchesSearch =
-            name.contains(query) || alat.contains(query) || status.contains(query);
+            name.contains(query) || alat.contains(query) || status.contains(query) || role.contains(query);
         bool matchesFilter = selectedFilter == "Semua" ||
             aktivitas['status'] == selectedFilter;
 
