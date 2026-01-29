@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:aplikasi_peminjaman_alat/core/services/alat_service.dart';
 
-class AlatCard extends StatelessWidget {
+class AlatCard extends StatefulWidget {
   final String namaAlat;
   final String kategori;
   final String kondisi;
-  final String? imageUrl;
+  final String? imageUrl; // ← ISI: NAMA FILE dari DB
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
@@ -19,9 +20,38 @@ class AlatCard extends StatelessWidget {
   });
 
   @override
+  State<AlatCard> createState() => _AlatCardState();
+}
+
+class _AlatCardState extends State<AlatCard> {
+  final AlatService _alatService = AlatService();
+  late String _imageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageUrl = _processImageUrl();
+  }
+
+  @override
+  void didUpdateWidget(covariant AlatCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageUrl != widget.imageUrl) {
+      _imageUrl = _processImageUrl();
+    }
+  }
+
+  String _processImageUrl() {
+    if (widget.imageUrl == null || widget.imageUrl!.isEmpty) {
+      return '';
+    }
+    return _alatService.getImageUrl(widget.imageUrl);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
-      width: 220, 
+      width: 220,
       height: 190,
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -39,30 +69,30 @@ class AlatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// NAMA + KONDISI
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
-                    namaAlat,
+                    widget.namaAlat,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
                     overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
                   ),
                 ),
-                const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: _getKondisiColor(kondisi),
+                    color: _getKondisiColor(widget.kondisi),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    kondisi,
+                    widget.kondisi,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -73,120 +103,47 @@ class AlatCard extends StatelessWidget {
               ],
             ),
           ),
-          
-          // KATEGORI
+
+          /// KATEGORI
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
             child: Text(
-              kategori,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              widget.kategori,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               overflow: TextOverflow.ellipsis,
-              maxLines: 1,
             ),
           ),
-          
-          // GAMBAR (CENTER)
+
+          /// GAMBAR - DIUBAH AGAR CENTER
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white, width: 1),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: _buildImage(),
-                ),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.grey[50],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: _buildImage(),
               ),
             ),
           ),
-          
-          // TOMBOL EDIT & DELETE
+
+          /// BUTTON
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-              ),
-            ),
             child: Row(
               children: [
-                // TOMBOL EDIT
-                Expanded(
-                  child: InkWell(
-                    onTap: onEdit,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF36536B), width: 1.5),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.edit,
-                            size: 14,
-                            color: Colors.black,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Edit',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                _buildActionButton(
+                  icon: Icons.edit,
+                  label: 'Edit',
+                  onTap: widget.onEdit,
                 ),
-                
                 const SizedBox(width: 8),
-                
-                // TOMBOL DELETE
-                Expanded(
-                  child: InkWell(
-                    onTap: onDelete,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF36536B), width: 1.5),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.delete,
-                            size: 14,
-                            color: Colors.black,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Delete',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                _buildActionButton(
+                  icon: Icons.delete,
+                  label: 'Delete',
+                  onTap: widget.onDelete,
                 ),
               ],
             ),
@@ -196,75 +153,112 @@ class AlatCard extends StatelessWidget {
     );
   }
 
+  /* ================= IMAGE - DIUBAH AGAR CENTER ================= */
+
   Widget _buildImage() {
-    if (imageUrl == null || imageUrl!.isEmpty) {
-      return Container(
-        color: Colors.white,
-        child: const Center(
-          child: Column(
+    if (_imageUrl.isEmpty) {
+      return _buildNoImagePlaceholder();
+    }
+
+    return Container(
+      color: Colors.white, // Background putih untuk kontras
+      child: Center( // WRAP DENGAN CENTER
+        child: Container(
+          constraints: const BoxConstraints(
+            maxWidth: 160, // Batas lebar maksimal
+            maxHeight: 100, // Batas tinggi maksimal
+          ),
+          child: Image.network(
+            _imageUrl,
+            fit: BoxFit.contain, // Pakai contain agar gambar utuh
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              print('Error loading image: $error, URL: $_imageUrl');
+              return _buildErrorPlaceholder();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoImagePlaceholder() {
+    return Container(
+      color: Colors.grey[100],
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.photo, size: 36, color: Colors.grey),
+            SizedBox(height: 6),
+            Text('No Image', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorPlaceholder() {
+    return Container(
+      color: Colors.grey[100],
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image, size: 36, color: Colors.grey),
+            SizedBox(height: 6),
+            Text('Failed to load', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /* ================= BUTTON ================= */
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    VoidCallback? onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 32,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF36536B), width: 1.5),
+          ),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.photo_size_select_actual_rounded,
-                size: 40,
-                color: Colors.grey,
-              ),
-              SizedBox(height: 6),
+              Icon(icon, size: 14, color: Colors.black),
+              const SizedBox(width: 4),
               Text(
-                'No Image',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 11,
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
               ),
             ],
           ),
         ),
-      );
-    }
-
-    return Image.network(
-      imageUrl!,
-      fit: BoxFit.contain,
-      width: double.infinity,
-      height: double.infinity,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Center(
-          child: CircularProgressIndicator(
-            value: loadingProgress.expectedTotalBytes != null
-                ? loadingProgress.cumulativeBytesLoaded /
-                    loadingProgress.expectedTotalBytes!
-                : null,
-            strokeWidth: 2,
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: Colors.grey[100],
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.broken_image,
-                  size: 40,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 6),
-                Text(
-                  'Failed to load',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      ),
     );
   }
 
@@ -274,10 +268,6 @@ class AlatCard extends StatelessWidget {
         return Colors.green;
       case 'rusak':
         return Colors.red;
-      case 'sedang':
-        return Colors.orange;
-      case 'hilang':
-        return Colors.amber;
       default:
         return Colors.blue;
     }

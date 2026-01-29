@@ -1,9 +1,11 @@
+import 'package:aplikasi_peminjaman_alat/core/services/pengguna_service.dart';
 import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
+import 'package:aplikasi_peminjaman_alat/models/pengguna_model.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/kelola%20pengguna/pengguna_dialog.dart';
+import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/delete_confirmation_diaalog.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 import 'pengguna_card.dart';
-
 
 class KelolaPenggunaPage extends StatefulWidget {
   const KelolaPenggunaPage({super.key});
@@ -16,22 +18,14 @@ class _KelolaPenggunaPageState extends State<KelolaPenggunaPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
 
-  // Dummy data dengan email dan password untuk pengujian
-  List<Map<String, dynamic>> penggunaList = [
-    {"name": "Nadya", "role": "Admin", "id": "1", "email": "nadya@gmail.com"},
-    {"name": "Rotul", "role": "Petugas", "id": "2", "email": "rotul@gmail.com"},
-    {"name": "Chella", "role": "Peminjam", "id": "3", "email": "chella@gmail.com"},
-    {"name": "Viona", "role": "Peminjam", "id": "4", "email": "viona@gmail.com"},
-    {"name": "Asel", "role": "Peminjam", "id": "5", "email": "asel@gmail.com"},
-    {"name": "Egi", "role": "Peminjam", "id": "6", "email": "egi@gmail.com"},
-  ];
-
-  List<Map<String, dynamic>> filteredPenggunaList = [];
+  List<PenggunaModel> penggunaList = [];
+  List<PenggunaModel> filteredPenggunaList = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    filteredPenggunaList = List.from(penggunaList);
+    _loadPengguna();
     _searchController.addListener(_filterPengguna);
   }
 
@@ -41,6 +35,34 @@ class _KelolaPenggunaPageState extends State<KelolaPenggunaPage> {
     super.dispose();
   }
 
+  Future<void> _loadPengguna() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final data = await PenggunaService.getAllPengguna();
+
+      if (mounted) {
+        setState(() {
+          penggunaList = data;
+          filteredPenggunaList = List.from(penggunaList);
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat pengguna: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _filterPengguna() {
     final query = _searchController.text.toLowerCase();
     setState(() {
@@ -48,18 +70,19 @@ class _KelolaPenggunaPageState extends State<KelolaPenggunaPage> {
         filteredPenggunaList = List.from(penggunaList);
       } else {
         filteredPenggunaList = penggunaList.where((pengguna) {
-          final name = pengguna['name']?.toString().toLowerCase() ?? '';
-          final role = pengguna['role']?.toString().toLowerCase() ?? '';
-          final email = pengguna['email']?.toString().toLowerCase() ?? '';
-          return name.contains(query) || role.contains(query) || email.contains(query);
+          final nama = pengguna.nama.toLowerCase();
+          final role = pengguna.role.toLowerCase();
+          final email = pengguna.email?.toLowerCase() ?? '';
+          return nama.contains(query) || role.contains(query) || email.contains(query);
         }).toList();
       }
     });
   }
 
-  Future<void> _showAddEditDialog({Map<String, dynamic>? pengguna}) async {
+  Future<void> _showAddEditDialog({PenggunaModel? pengguna}) async {
     final result = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => PenggunaDialog(
         pengguna: pengguna,
         isEdit: pengguna != null,
@@ -67,44 +90,48 @@ class _KelolaPenggunaPageState extends State<KelolaPenggunaPage> {
     );
 
     if (result == true && mounted) {
-     
-      setState(() {});
+      await _loadPengguna();
       
-      SuccessPopup.show(
-        context,
-        pengguna == null ? 'Pengguna berhasil ditambahkan' : 'Pengguna berhasil diperbarui',
-      );
+      if (mounted) {
+        SuccessPopup.show(
+          context,
+          pengguna == null 
+              ? 'Pengguna berhasil ditambahkan' 
+              : 'Pengguna berhasil diperbarui',
+        );
+      }
     }
   }
 
-  Future<void> _deletePengguna(Map<String, dynamic> pengguna) async {
+  Future<void> _deletePengguna(PenggunaModel pengguna) async {
     final bool? result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => DeleteConfirmationDialog(
-        penggunaName: pengguna['name'],
-        penggunaId: pengguna['id'],
+      builder: (context) => PenggunaDeleteDialog(
+        penggunaName: pengguna.nama,
+        penggunaId: pengguna.idUser,
       ),
     );
 
     if (result == true && mounted) {
-      setState(() {
-        penggunaList.removeWhere((item) => item['id'] == pengguna['id']);
-        filteredPenggunaList = List.from(penggunaList);
-      });
+      await _loadPengguna();
       
-      SuccessPopup.show(context, 'Pengguna berhasil dihapus');
+      if (mounted) {
+        SuccessPopup.show(context, 'Pengguna berhasil dihapus');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-     return Scaffold(
-key: _scaffoldKey,
-     drawer: Padding(
-  padding: const EdgeInsets.only(top: 70, bottom: 60),
-  child: const SideBar(currentPage: "pengguna"),
-),
+    return Scaffold(
+      key: _scaffoldKey,
+      drawer: const Drawer(
+        child: Padding(
+          padding: EdgeInsets.only(top: 70, bottom: 60),
+          child: SideBar(currentPage: "pengguna"),
+        ),
+      ),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: ListView(
@@ -130,7 +157,6 @@ key: _scaffoldKey,
                       color: Colors.black,
                     ),
                   ),
-                 
                 ],
               ),
             ),
@@ -195,34 +221,41 @@ key: _scaffoldKey,
 
             const SizedBox(height: 30),
 
-            // List pengguna atau pesan kosong
-            if (filteredPenggunaList.isEmpty)
+            if (isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF3A587A),
+                  ),
+                ),
+              )
+            else if (filteredPenggunaList.isEmpty)
               Center(
                 child: Padding(
                   padding: const EdgeInsets.all(40),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 80,
-                          color: Colors.grey[400],
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.people_outline,
+                        size: 80,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _searchController.text.isEmpty
+                            ? 'Belum ada pengguna'
+                            : 'Pengguna tidak ditemukan',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchController.text.isEmpty
-                              ? 'Belum ada pengguna'
-                              : 'Pengguna tidak ditemukan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-
-            if (filteredPenggunaList.isNotEmpty)
+              )
+            else
               Column(
                 children: filteredPenggunaList.map((pengguna) {
                   return PenggunaCard(

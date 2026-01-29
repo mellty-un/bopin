@@ -1,62 +1,85 @@
 class Validator {
-   static String? email(String? value) {
+  static String? email(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Email wajib diisi';
     }
     
-    final emailPattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    final email = value.trim();
     
-    if (!emailPattern.hasMatch(value.trim())) {
-      return 'Format email tidak valid';
-    }
-    
-    // Validasi khusus @gmail.com
-    if (!value.trim().endsWith('@gmail.com')) {
+    // Wajib @gmail.com
+    if (!email.endsWith('@gmail.com')) {
       return 'Email harus menggunakan @gmail.com';
     }
     
+    final parts = email.split('@');
+    if (parts.length != 2) return 'Format email tidak valid';
+    
+    final localPart = parts[0];
+    
+    // **SUPABASE MINIMAL 6 KARAKTER SEBELUM @**
+    if (localPart.length < 3) {
+    }
+    
+    if (email.contains(' ')) {
+      return 'Email tidak boleh mengandung spasi';
+    }
+    
+    // Format dasar
+    final emailPattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    if (!emailPattern.hasMatch(email)) {
+      return 'Format email tidak valid';
+    }
+    
     return null;
   }
 
-   static String? password(String? value) {
+  static String? password(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Password wajib diisi';
     }
-    if (value.length < 6) {
-      return 'Password minimal 6 karakter';
+    
+    final password = value.trim();
+    
+    if (password.length < 6) {
+      return 'Password minimal 6 angka';
     }
-    if (value.length > 20) {
-      return 'Password maksimal 20 karakter';
+    
+    if (password.length > 20) {
+      return 'Password maksimal 20 angka';
     }
+    
+    // Hanya angka
+    final numericRegex = RegExp(r'^[0-9]+$');
+    if (!numericRegex.hasMatch(password)) {
+      return 'Password hanya boleh berisi angka (0-9)';
+    }
+    
     return null;
   }
 
-
-  
-  // ========== VALIDASI NAMA ==========
   static String? name(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Nama wajib diisi';
     }
-    if (value.trim().length < 2) {
+    
+    final name = value.trim();
+    
+    if (name.length < 2) {
       return 'Nama minimal 2 karakter';
     }
-    if (value.trim().length > 50) {
+    
+    if (name.length > 50) {
       return 'Nama maksimal 50 karakter';
     }
-    if (RegExp(r'^\d+$').hasMatch(value.trim())) {
+    
+    if (RegExp(r'^\d+$').hasMatch(name)) {
       return 'Nama tidak boleh hanya berisi angka';
     }
-    if (RegExp(r'[<>{}[\]\\\/]').hasMatch(value)) {
+    
+    if (RegExp(r'[<>{}[\]\\\/]').hasMatch(name)) {
       return 'Nama mengandung karakter tidak diizinkan';
     }
+    
     return null;
   }
-
-
- 
-
- 
-
-  //
 }

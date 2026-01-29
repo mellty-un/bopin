@@ -10,4 +10,19 @@ class SupabaseService {
 
   static SupabaseClient get client =>
       Supabase.instance.client;
+
+  static String handleError(dynamic error) {
+    if (error is PostgrestException) {
+      return error.message;
+    } else if (error is AuthException) {
+      return error.message;
+    } else {
+      return 'Terjadi kesalahan: ${error.toString()}';
+    }
+  }
+
+    static String getStorageUrl(String fileName) {
+    return 'https://kecqmrefrthmuoldpufg.supabase.co/storage/v1/object/public/alat-images/$fileName';
+  }
+
 }

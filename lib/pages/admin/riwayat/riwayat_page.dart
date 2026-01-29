@@ -1,4 +1,5 @@
-import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
+import 'package:aplikasi_peminjaman_alat/core/services/riwayat_service.dart';
+import 'package:aplikasi_peminjaman_alat/models/riwayat_model.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/riwayat/riwaya_dialog.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/riwayat/riwayat_card.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
@@ -14,36 +15,65 @@ class RiwayatPage extends StatefulWidget {
 class _RiwayatPageState extends State<RiwayatPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
+  final RiwayatService _riwayatService = RiwayatService();
 
   String _activeFilter = 'Semua';
-
-  List<Map<String, dynamic>> riwayatList = [
-    {"nama": "Chella", "tipe": "Peminjaman"},
-    {"nama": "Asel", "tipe": "Peminjaman"},
-    {"nama": "Egi", "tipe": "Pengembalian"},
-    {"nama": "Viona", "tipe": "Peminjaman"},
-  ];
-
-  List<Map<String, dynamic>> filteredList = [];
+  List<Riwayat> riwayatList = [];
+  List<Riwayat> filteredList = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    filteredList = List.from(riwayatList);
+    _loadRiwayat();
     _searchController.addListener(_applyFilter);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadRiwayat() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data = await _riwayatService.getAllRiwayat();
+      setState(() {
+        riwayatList = data;
+        filteredList = List.from(data);
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _applyFilter() {
     final query = _searchController.text.toLowerCase();
 
     setState(() {
-      filteredList = riwayatList.where((item) {
-        final nama = item['nama'].toString().toLowerCase();
-        final tipe = item['tipe'];
+      filteredList = riwayatList.where((riwayat) {
+        final nama = riwayat.namaUser?.toLowerCase() ?? '';
+        final alat = riwayat.namaAlat?.toLowerCase() ?? '';
+        final catatan = riwayat.catatan?.toLowerCase() ?? '';
 
-        final matchSearch = nama.contains(query);
-        final matchFilter =
-            _activeFilter == 'Semua' || tipe == _activeFilter;
+        final matchSearch = nama.contains(query) || 
+                           alat.contains(query) || 
+                           catatan.contains(query);
+        
+        final matchFilter = _activeFilter == 'Semua' || 
+                           (_activeFilter == 'Pengembalian');
 
         return matchSearch && matchFilter;
       }).toList();
@@ -57,34 +87,19 @@ class _RiwayatPageState extends State<RiwayatPage> {
     });
   }
 
-  Future<void> _showEditDialog(Map<String, dynamic> riwayat) async {
+  Future<void> _showEditDialog(Riwayat riwayat) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => RiwayatDialog(
-        riwayat: riwayat,
+        riwayat: riwayat.toMap(),
         isEdit: true,
+        onSuccess: _loadRiwayat,
       ),
     );
 
     if (result == true && mounted) {
-      SuccessPopup.show(context, 'Pengembalian berhasil disimpan');
-    }
-  }
-
-  Future<void> _deleteRiwayat(Map<String, dynamic> riwayat) async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) =>
-          DeleteConfirmationDialogRiwayat(riwayatId: '1'),
-    );
-
-    if (result == true && mounted) {
-      setState(() {
-        riwayatList.remove(riwayat);
-        _applyFilter();
-      });
-      SuccessPopup.show(context, 'Pengembalian berhasil dihapus');
+      // Data berhasil diupdate atau dihapus
+      await _loadRiwayat();
     }
   }
 
@@ -120,47 +135,133 @@ class _RiwayatPageState extends State<RiwayatPage> {
               ],
             ),
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.black26),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, color: Colors.black54),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search',
-                        border: InputBorder.none,
+
+            // Loading State
+            if (_isLoading)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 50),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Memuat data riwayat...'),
+                    ],
+                  ),
+                ),
+              )
+
+            // Error State
+            else if (_errorMessage != null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 50),
+                  child: Column(
+                    children: [
+                      Icon(Icons.error_outline, size: 50, color: Colors.red),
+                      SizedBox(height: 16),
+                      Text('Gagal memuat data'),
+                      SizedBox(height: 8),
+                      Text(
+                        _errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadRiwayat,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        child: Text('Coba Lagi', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+
+            else Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: Colors.black26),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search, color: Colors.black54),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: const InputDecoration(
+                            hintText: 'Cari nama, alat, atau catatan...',
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      if (_searchController.text.isNotEmpty)
+                        IconButton(
+                          icon: Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            _applyFilter();
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    _buildFilter('Semua'),
+                    const SizedBox(width: 8),
+                    _buildFilter('Peminjaman'),
+                    const SizedBox(width: 8),
+                    _buildFilter('Pengembalian'),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                if (filteredList.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.history,
+                            size: 80,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchController.text.isEmpty
+                                ? 'Belum ada data riwayat'
+                                : 'Data riwayat tidak ditemukan',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                _buildFilter('Semua'),
-                const SizedBox(width: 8),
-                _buildFilter('Peminjaman'),
-                const SizedBox(width: 8),
-                _buildFilter('Pengembalian'),
+
+                if (filteredList.isNotEmpty)
+                  Column(
+                    children: filteredList.map((riwayat) {
+                      return RiwayatCard(
+                        riwayat: riwayat.toMap(),
+                        onEdit: () => _showEditDialog(riwayat), onDelete: () {  },
+                        // Tidak perlu onDelete lagi karena sudah ada di dialog
+                      );
+                    }).toList(),
+                  ),
               ],
-            ),
-            const SizedBox(height: 20),
-            Column(
-              children: filteredList.map((riwayat) {
-                return RiwayatCard(
-                  riwayat: riwayat,
-                  onEdit: () => _showEditDialog(riwayat),
-                  onDelete: () => _deleteRiwayat(riwayat),
-                );
-              }).toList(),
             ),
           ],
         ),

@@ -1,11 +1,13 @@
+import 'package:aplikasi_peminjaman_alat/core/services/denda_service.dart';
 import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
 import 'package:flutter/material.dart';
 
 class DendaDialog extends StatefulWidget {
   final Map<String, dynamic>? denda;
   final bool isEdit;
+  final VoidCallback? onSuccess;
 
-  const DendaDialog({super.key, this.denda, this.isEdit = false});
+  const DendaDialog({super.key, this.denda, this.isEdit = false, this.onSuccess});
 
   @override
   State<DendaDialog> createState() => _DendaDialogState();
@@ -15,6 +17,7 @@ class _DendaDialogState extends State<DendaDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
+  final DendaService _dendaService = DendaService();
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -23,8 +26,11 @@ class _DendaDialogState extends State<DendaDialog> {
   void initState() {
     super.initState();
     if (widget.isEdit && widget.denda != null) {
-      _nameController.text = widget.denda!['name'] ?? '';
-      _amountController.text = widget.denda!['amount']?.toString() ?? '';
+      _nameController.text = widget.denda!['jenis_denda'] ?? widget.denda!['name'] ?? '';
+      final amount = widget.denda!['jumlah_denda'] ?? widget.denda!['amount'] ?? 0;
+      if (amount > 0) {
+        _formatAmountInput(amount.toString());
+      }
     }
   }
 
@@ -43,11 +49,34 @@ class _DendaDialogState extends State<DendaDialog> {
     setState(() => _isLoading = true);
 
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      final jenisDenda = _nameController.text.trim();
+      final jumlahDenda = int.parse(
+        _amountController.text
+            .replaceAll('Rp', '')
+            .replaceAll('.', '')
+            .trim(),
+      );
+
+      if (widget.isEdit && widget.denda != null) {
+        final id = widget.denda!['id_denda'] ?? widget.denda!['id'] ?? 0;
+        final idDenda = id is String ? int.parse(id) : id as int;
+        
+        await _dendaService.updateDenda(
+          idDenda: idDenda,
+          jenisDenda: jenisDenda,
+          jumlahDenda: jumlahDenda,
+        );
+      } else {
+        await _dendaService.createDenda(
+          jenisDenda: jenisDenda,
+          jumlahDenda: jumlahDenda,
+        );
+      }
 
       if (!mounted) return;
 
       Navigator.of(context).pop(true);
+      widget.onSuccess?.call();
 
       SuccessPopup.show(
         context,
@@ -57,7 +86,7 @@ class _DendaDialogState extends State<DendaDialog> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Gagal menyimpan. Silakan coba lagi.';
+        _errorMessage = 'Gagal menyimpan: ${e.toString().replaceAll('Exception: ', '')}';
       });
     }
   }
@@ -65,14 +94,15 @@ class _DendaDialogState extends State<DendaDialog> {
   // Validasi khusus untuk nama denda
   String? _validateDendaName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Nama denda wajib diisi';
+      return 'Jenis denda wajib diisi';
     }
-    if (value.trim().length < 2) {
-      return 'Nama denda minimal 2 karakter';
+    
+    // Validasi agar sesuai dengan enum di database
+    final validJenis = ['Keterlambatan', 'Kerusakan', 'Kehilangan'];
+    if (!validJenis.contains(value.trim())) {
+      return 'Pilih: Keterlambatan, Kerusakan, atau Kehilangan';
     }
-    if (value.trim().length > 50) {
-      return 'Nama denda maksimal 50 karakter';
-    }
+    
     return null;
   }
 
@@ -89,7 +119,7 @@ class _DendaDialogState extends State<DendaDialog> {
       return 'Biaya denda wajib diisi';
     }
     
-    final amount = double.tryParse(cleanValue);
+    final amount = int.tryParse(cleanValue);
     if (amount == null) {
       return 'Masukkan angka yang valid';
     }
@@ -174,17 +204,28 @@ class _DendaDialogState extends State<DendaDialog> {
                     ),
                   ),
 
-                // Form Nama Denda
+                // Form Jenis Denda (Dropdown)
                 const Text(
-                  'Nama Denda',
+                  'Jenis Denda',
                   style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
-                TextFormField(
-                  controller: _nameController,
-                  textCapitalization: TextCapitalization.words,
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: _nameController.text.isEmpty ? null : _nameController.text,
+                  items: ['Keterlambatan', 'Kerusakan', 'Kehilangan']
+                      .map((jenis) => DropdownMenuItem<String>(
+                            value: jenis,
+                            child: Text(jenis),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _nameController.text = value!;
+                    });
+                  },
                   decoration: InputDecoration(
-                    hintText: 'Contoh: Terlambat, Hilang, Rusak',
+                    hintText: 'Pilih jenis denda',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -288,11 +329,13 @@ class _DendaDialogState extends State<DendaDialog> {
 class DeleteConfirmationDialogDenda extends StatefulWidget {
   final String dendaName;
   final String dendaId;
+  final VoidCallback? onSuccess;
 
   const DeleteConfirmationDialogDenda({
     super.key,
     required this.dendaName,
     required this.dendaId,
+    this.onSuccess,
   });
 
   @override
@@ -301,23 +344,35 @@ class DeleteConfirmationDialogDenda extends StatefulWidget {
 }
 
 class _DeleteConfirmationDialogDendaState extends State<DeleteConfirmationDialogDenda> {
+  final DendaService _dendaService = DendaService();
   bool _isDeleting = false;
+  String? _errorMessage;
 
   Future<void> _handleDelete() async {
     if (_isDeleting) return;
-    setState(() => _isDeleting = true);
+    
+    setState(() {
+      _isDeleting = true;
+      _errorMessage = null;
+    });
 
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      final id = int.tryParse(widget.dendaId) ?? 0;
+      await _dendaService.deleteDenda(id);
 
       if (!mounted) return;
 
       Navigator.of(context).pop(true);
+      widget.onSuccess?.call();
 
       SuccessPopup.show(context, 'Denda berhasil dihapus');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isDeleting = false);
+      
+      setState(() {
+        _isDeleting = false;
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
     }
   }
 
@@ -348,6 +403,16 @@ class _DeleteConfirmationDialogDendaState extends State<DeleteConfirmationDialog
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15, color: Color(0xFF4B5563)),
             ),
+            
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            
             const SizedBox(height: 24),
 
             Row(

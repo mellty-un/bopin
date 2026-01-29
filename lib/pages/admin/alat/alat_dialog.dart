@@ -1,12 +1,23 @@
+import 'dart:io';
+import 'package:aplikasi_peminjaman_alat/core/services/alat_service.dart';
+import 'package:aplikasi_peminjaman_alat/core/services/kategori_service.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 
 class AlatDialog extends StatefulWidget {
   final Map<String, dynamic>? alat;
   final bool isEdit;
+  final VoidCallback? onSuccess;
 
-  const AlatDialog({super.key, this.alat, this.isEdit = false});
+  const AlatDialog({
+    super.key, 
+    this.alat, 
+    this.isEdit = false,
+    this.onSuccess,
+  });
 
   @override
   State<AlatDialog> createState() => _AlatDialogState();
@@ -15,60 +26,94 @@ class AlatDialog extends StatefulWidget {
 class _AlatDialogState extends State<AlatDialog> {
   final _formKey = GlobalKey<FormState>();
   final _namaController = TextEditingController();
-  final _kategoriController = TextEditingController();
-  final _jumlahController = TextEditingController();
-  final _tersediaController = TextEditingController();
+  final _stokTotalController = TextEditingController();
+  final _stokTersediaController = TextEditingController();
+  final AlatService _alatService = AlatService();
+  final KategoriService _kategoriService = KategoriService();
 
-  final List<String> _kondisiOptions = [
-    'Baik',
-    'Rusak',
-    'Sedang',
-    'Perlu Perbaikan',
-  ];
+  final List<String> _kondisiOptions = ['Baik', 'Rusak'];
   String? _selectedKondisi;
 
-  final List<String> _kategoriOptions = [
-    'Alat Masak',
-    'Alat Potong',
-    'Alat Pastry',
-    'Alat Dekorasi',
-
-    'Lainnya',
-  ];
-
-  String? _selectedKategori;
+  List<Map<String, dynamic>> _kategoriOptions = [];
+  int? _selectedKategoriId;
 
   bool _isLoading = false;
+  bool _isUploading = false;
   String? _errorMessage;
-  File? _selectedImage;
+  
+  // PERUBAHAN PENTING: Pisahkan state gambar
+  File? _selectedImageFile;        // File baru dari device (belum diupload)
+  String? _existingImageName;      // Nama file yang sudah ada di bucket (dari database)
+  String? _newImageName;           // Nama file baru setelah diupload
+  
   final ImagePicker _picker = ImagePicker();
+  Uint8List? _webImageBytes;       // Untuk menyimpan bytes gambar di web
 
   @override
   void initState() {
     super.initState();
+    _loadKategori();
+    _initializeData();
+  }
+
+  void _initializeData() {
     if (widget.isEdit && widget.alat != null) {
-      _namaController.text = widget.alat!['nama'] ?? '';
-      _jumlahController.text = widget.alat!['jumlah']?.toString() ?? '';
-      _tersediaController.text = widget.alat!['tersedia']?.toString() ?? '';
-      _selectedKondisi = widget.alat!['kondisi'] ?? 'Baik';
-      _selectedKategori = widget.alat!['kategori'];
+      // Data dari database
+      _namaController.text = widget.alat!['nama_alat'] ?? widget.alat!['nama'] ?? '';
+      _stokTotalController.text = widget.alat!['stok_total']?.toString() ?? '0';
+      _stokTersediaController.text = widget.alat!['stok_tersedia']?.toString() ?? '0';
+      
+      // Kondisi
+      final kondisi = widget.alat!['kondisi'] ?? 'Baik';
+      _selectedKondisi = _kondisiOptions.contains(kondisi) ? kondisi : 'Baik';
+      
+      // Kategori
+      _selectedKategoriId = widget.alat!['id_kategori'];
+      
+      // Gambar yang sudah ada (nama file dari database)
+      _existingImageName = widget.alat!['gambar'];
     } else {
       _selectedKondisi = 'Baik';
-      _selectedKategori = _kategoriOptions.first;
-      _jumlahController.text = '';
-      _tersediaController.text = '';
+      _selectedKategoriId = null;
+      _stokTotalController.text = '0';
+      _stokTersediaController.text = '0';
     }
   }
 
-  @override
-  void dispose() {
-    _namaController.dispose();
-    _kategoriController.dispose();
-    _jumlahController.dispose();
-    _tersediaController.dispose();
-    super.dispose();
+  Future<void> _loadKategori() async {
+    try {
+      final kategori = await _kategoriService.getAllKategoriForDropdown();
+      setState(() {
+        _kategoriOptions = kategori;
+      });
+    } catch (e) {
+      print('Error loading kategori: $e');
+    }
   }
 
+  // Helper method untuk kategori dropdown items
+  List<DropdownMenuItem<int>> _buildKategoriItems() {
+    return _kategoriOptions.map<DropdownMenuItem<int>>((e) {
+      final kategoriId = e['id_kategori'] as int? ?? 0;
+      final kategoriName = e['nama_kategori']?.toString() ?? 'Unknown';
+      return DropdownMenuItem<int>(
+        value: kategoriId,
+        child: Text(kategoriName, overflow: TextOverflow.ellipsis),
+      );
+    }).toList();
+  }
+
+  // Helper method untuk kondisi dropdown items
+  List<DropdownMenuItem<String>> _buildKondisiItems() {
+    return _kondisiOptions.map<DropdownMenuItem<String>>((e) {
+      return DropdownMenuItem<String>(
+        value: e,
+        child: Text(e, overflow: TextOverflow.ellipsis),
+      );
+    }).toList();
+  }
+
+  // Pilih gambar dari device
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -80,58 +125,128 @@ class _AlatDialogState extends State<AlatDialog> {
 
       if (image != null) {
         setState(() {
-          _selectedImage = File(image.path);
+          _isUploading = true;
+          _errorMessage = null;
         });
+
+        if (kIsWeb) {
+          // UNTUK WEB: Baca bytes gambar
+          final bytes = await image.readAsBytes();
+          setState(() {
+            _webImageBytes = bytes;
+            _selectedImageFile = null; // Tidak digunakan di web
+            _isUploading = false;
+          });
+        } else {
+          // UNTUK MOBILE: Gunakan File
+          setState(() {
+            _selectedImageFile = File(image.path);
+            _webImageBytes = null; // Tidak digunakan di mobile
+            _isUploading = false;
+          });
+        }
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Gagal memilih gambar')));
-    }
-  }
-
-  Future<void> _saveAlat() async {
-    setState(() => _errorMessage = null);
-
-    if (_selectedKondisi == null) {
-      setState(() => _errorMessage = 'Kondisi harus dipilih');
-      return;
-    }
-
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (!mounted) return;
-
-      Navigator.of(context).pop(true);
-
-      // Show success popup
-      SuccessPopup.show(
-        context,
-        widget.isEdit
-            ? 'Alat berhasil diupdate!'
-            : 'Alat berhasil ditambahkan!',
-      );
-    } catch (e) {
-      if (!mounted) return;
       setState(() {
-        _isLoading = false;
-        _errorMessage = 'Gagal menyimpan. Silakan coba lagi.';
+        _isUploading = false;
+        _errorMessage = 'Gagal memilih gambar: ${e.toString().replaceAll("Exception: ", "")}';
       });
     }
   }
 
-  String? _validateKondisi(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Kondisi wajib dipilih';
-    }
-    return null;
+  // ================= SAVE ALAT =================
+Future<void> _saveAlat() async {
+  setState(() => _errorMessage = null);
+
+  if (_selectedKondisi == null) {
+    setState(() => _errorMessage = 'Kondisi harus dipilih');
+    return;
   }
+
+  if (_selectedKategoriId == null || _selectedKategoriId == 0) {
+    setState(() => _errorMessage = 'Kategori harus dipilih');
+    return;
+  }
+
+  if (!_formKey.currentState!.validate()) return;
+
+  final stokTotal = int.tryParse(_stokTotalController.text) ?? 0;
+  final stokTersedia = int.tryParse(_stokTersediaController.text) ?? 0;
+
+  if (stokTersedia > stokTotal) {
+    setState(() => _errorMessage = 'Stok tersedia tidak boleh lebih dari stok total');
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  try {
+    String? finalImageName = _existingImageName;
+
+    // ================= UPLOAD IMAGE =================
+    if (_selectedImageFile != null || _webImageBytes != null) {
+      setState(() => _isUploading = true);
+
+      if (kIsWeb && _webImageBytes != null) {
+        // ✅ WEB → UPLOAD BYTES
+        finalImageName = await _alatService.uploadImageBytes(
+          _webImageBytes!,
+        );
+      } else if (!kIsWeb && _selectedImageFile != null) {
+        // ✅ MOBILE → UPLOAD FILE
+        finalImageName = await _alatService.uploadImage(
+          _selectedImageFile!,
+        );
+      }
+
+      setState(() => _isUploading = false);
+    }
+
+    // ================= SAVE DATA =================
+    if (widget.isEdit && widget.alat != null) {
+      final id = widget.alat!['id_alat'] ?? widget.alat!['id'];
+
+      await _alatService.updateAlat(
+        idAlat: id is String ? int.parse(id) : id,
+        namaAlat: _namaController.text.trim(),
+        idKategori: _selectedKategoriId!,
+        kondisi: _selectedKondisi!,
+        gambar: finalImageName,
+        stokTotal: stokTotal,
+        stokTersedia: stokTersedia,
+      );
+    } else {
+      await _alatService.createAlat(
+        namaAlat: _namaController.text.trim(),
+        idKategori: _selectedKategoriId!,
+        kondisi: _selectedKondisi!,
+        gambar: finalImageName,
+        stokTotal: stokTotal,
+        stokTersedia: stokTersedia,
+      );
+    }
+
+    if (!mounted) return;
+
+    Navigator.of(context).pop(true);
+    widget.onSuccess?.call();
+
+    SuccessPopup.show(
+      context,
+      widget.isEdit
+          ? 'Alat berhasil diupdate!'
+          : 'Alat berhasil ditambahkan!',
+    );
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _isUploading = false;
+      _errorMessage = 'Gagal menyimpan: ${e.toString().replaceAll('Exception: ', '')}';
+    });
+  }
+}
+
 
   String? _validateNumber(String? value) {
     if (value == null || value.isEmpty) {
@@ -147,16 +262,82 @@ class _AlatDialogState extends State<AlatDialog> {
     return null;
   }
 
+  // Widget untuk menampilkan gambar preview
+  Widget _buildImagePreview() {
+    if (_isUploading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // 1. JIKA ADA GAMBAR BARU YANG DIPILIH (dari device)
+    if (_selectedImageFile != null) {
+      // UNTUK MOBILE
+      return Image.file(
+        _selectedImageFile!,
+        fit: BoxFit.cover,
+      );
+    } else if (_webImageBytes != null) {
+      // UNTUK WEB
+      return Image.memory(
+        _webImageBytes!,
+        fit: BoxFit.cover,
+      );
+    }
+    
+    // 2. JIKA ADA GAMBAR YANG SUDAH ADA (dari database/bucket)
+    else if (_existingImageName != null && _existingImageName!.isNotEmpty) {
+      final imageUrl = _alatService.getImageUrl(_existingImageName);
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print('Error loading existing image: $error');
+          return _buildImagePlaceholder();
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(child: CircularProgressIndicator());
+        },
+      );
+    }
+    
+    // 3. JIKA TIDAK ADA GAMBAR
+    else {
+      return _buildImagePlaceholder();
+    }
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.add_photo_alternate_outlined,
+            size: 45,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Pilih gambar',
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Color(0xFFEBEFF2),
+      backgroundColor: const Color(0xFFEBEFF2),
       insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         width: MediaQuery.of(context).size.width * 0.98,
         constraints: const BoxConstraints(maxWidth: 650),
-
         child: Form(
           key: _formKey,
           autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -211,15 +392,15 @@ class _AlatDialogState extends State<AlatDialog> {
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
-                    hintText: '',
+                    hintText: 'Masukkan nama alat',
                     hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Color(0xFFEBEFF2)),
+                      borderSide: const BorderSide(color: Color(0xFFEBEFF2)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Color(0xFFEBEFF2)),
+                      borderSide: const BorderSide(color: Color(0xFFEBEFF2)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -243,6 +424,7 @@ class _AlatDialogState extends State<AlatDialog> {
                 ),
                 const SizedBox(height: 16),
 
+                // Kategori dan Kondisi dropdown
                 Row(
                   children: [
                     Expanded(
@@ -257,29 +439,24 @@ class _AlatDialogState extends State<AlatDialog> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
+                          DropdownButtonFormField<int>(
                             isExpanded: true,
-                            value: _selectedKategori,
-                            items: _kategoriOptions.map((e) {
-                              return DropdownMenuItem(
-                                value: e,
-                                child: Text(e, overflow: TextOverflow.ellipsis),
-                              );
-                            }).toList(),
+                            value: _selectedKategoriId,
+                            items: _buildKategoriItems(),
                             onChanged: (value) {
-                              setState(() => _selectedKategori = value);
+                              setState(() {
+                                _selectedKategoriId = value;
+                              });
                             },
                             decoration: _inputDecoration(),
                             dropdownColor: Colors.white,
                             validator: (value) =>
-                                value == null ? 'Kategori wajib dipilih' : null,
+                                value == null || value == 0 ? 'Kategori wajib dipilih' : null,
                           ),
                         ],
                       ),
                     ),
-
                     const SizedBox(width: 12),
-
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,18 +472,14 @@ class _AlatDialogState extends State<AlatDialog> {
                           DropdownButtonFormField<String>(
                             isExpanded: true,
                             value: _selectedKondisi,
-                            items: _kondisiOptions.map((e) {
-                              return DropdownMenuItem(
-                                value: e,
-                                child: Text(e, overflow: TextOverflow.ellipsis),
-                              );
-                            }).toList(),
+                            items: _buildKondisiItems(),
                             onChanged: (value) {
                               setState(() => _selectedKondisi = value);
                             },
                             decoration: _inputDecoration(),
                             dropdownColor: Colors.white,
-                            validator: _validateKondisi,
+                            validator: (value) =>
+                                value == null ? 'Kondisi wajib dipilih' : null,
                           ),
                         ],
                       ),
@@ -315,15 +488,15 @@ class _AlatDialogState extends State<AlatDialog> {
                 ),
                 const SizedBox(height: 16),
 
+                // Stok Total dan Stok Tersedia
                 Row(
                   children: [
-                    // Jumlah
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Jumlah',
+                            'Stok Total',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -331,41 +504,11 @@ class _AlatDialogState extends State<AlatDialog> {
                           ),
                           const SizedBox(height: 8),
                           TextFormField(
-                            controller: _jumlahController,
+                            controller: _stokTotalController,
                             keyboardType: TextInputType.number,
                             style: const TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white,
-                              hintText: '',
-                              hintStyle: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[400],
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Color(0xFF3A587A),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Color(0xFF3A587A),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF3A587A),
-                                  width: 1.5,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 14,
-                              ),
-                              errorStyle: const TextStyle(fontSize: 11),
+                            decoration: _inputDecoration().copyWith(
+                              hintText: '0',
                             ),
                             validator: (value) => _validateNumber(value),
                           ),
@@ -373,13 +516,12 @@ class _AlatDialogState extends State<AlatDialog> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    // Tersedia
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Tersedia',
+                            'Stok Tersedia',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -387,41 +529,11 @@ class _AlatDialogState extends State<AlatDialog> {
                           ),
                           const SizedBox(height: 8),
                           TextFormField(
-                            controller: _tersediaController,
+                            controller: _stokTersediaController,
                             keyboardType: TextInputType.number,
                             style: const TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white,
-                              hintText: '',
-                              hintStyle: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[400],
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Color(0xFFEBEFF2),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Color(0xFFEBEFF2),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF3A587A),
-                                  width: 1.5,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 14,
-                              ),
-                              errorStyle: const TextStyle(fontSize: 11),
+                            decoration: _inputDecoration().copyWith(
+                              hintText: '0',
                             ),
                             validator: (value) => _validateNumber(value),
                           ),
@@ -430,61 +542,72 @@ class _AlatDialogState extends State<AlatDialog> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 16),
+                
+                // Bagian Gambar
                 const Text(
-                  'Image',
+                  'Gambar',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
 
+                // Info gambar yang ada (jika edit mode)
+                if (widget.isEdit && _existingImageName != null && _selectedImageFile == null && _webImageBytes == null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Gambar saat ini: $_existingImageName',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ),
+
                 Align(
                   alignment: Alignment.center,
                   child: InkWell(
-                    onTap: _pickImage,
+                    onTap: _isUploading ? null : _pickImage,
                     borderRadius: BorderRadius.circular(12),
                     child: SizedBox(
                       width: 220,
                       height: 140,
                       child: Container(
-                        
                         decoration: BoxDecoration(
-                         
-                          border: Border.all(color: Color(0xFFEBEFF2)),
+                          border: Border.all(color: const Color(0xFFEBEFF2)),
                           borderRadius: BorderRadius.circular(12),
                           color: Colors.white,
                         ),
-                        child: _selectedImage != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  _selectedImage!,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.add_photo_alternate_outlined,
-                                      size: 45,
-                                      color: Colors.grey.shade400,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      'Pilih gambar',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade500,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: _buildImagePreview(),
+                        ),
                       ),
                     ),
                   ),
                 ),
+
+                // Tombol hapus gambar (jika ada gambar yang sudah ada)
+                if (widget.isEdit && _existingImageName != null && (_selectedImageFile != null || _webImageBytes != null))
+                  Align(
+                    alignment: Alignment.center,
+                    child: TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedImageFile = null;
+                          _webImageBytes = null;
+                        });
+                      },
+                      child: Text(
+                        'Batalkan gambar baru',
+                        style: TextStyle(
+                          color: Colors.red[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 24),
 
@@ -516,7 +639,7 @@ class _AlatDialogState extends State<AlatDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _saveAlat,
+                        onPressed: (_isLoading || _isUploading) ? null : _saveAlat,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3A587A),
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -525,7 +648,7 @@ class _AlatDialogState extends State<AlatDialog> {
                           ),
                           elevation: 0,
                         ),
-                        child: _isLoading
+                        child: _isLoading || _isUploading
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
@@ -558,11 +681,13 @@ class _AlatDialogState extends State<AlatDialog> {
 class DeleteAlatConfirmationDialog extends StatefulWidget {
   final String alatName;
   final String alatId;
+  final VoidCallback? onSuccess;
 
   const DeleteAlatConfirmationDialog({
     super.key,
     required this.alatName,
     required this.alatId,
+    this.onSuccess,
   });
 
   @override
@@ -572,24 +697,35 @@ class DeleteAlatConfirmationDialog extends StatefulWidget {
 
 class _DeleteAlatConfirmationDialogState
     extends State<DeleteAlatConfirmationDialog> {
+  final AlatService _alatService = AlatService();
   bool _isDeleting = false;
+  String? _errorMessage;
 
   Future<void> _handleDelete() async {
     if (_isDeleting) return;
-    setState(() => _isDeleting = true);
+    
+    setState(() {
+      _isDeleting = true;
+      _errorMessage = null;
+    });
 
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      final id = int.tryParse(widget.alatId) ?? 0;
+      await _alatService.deleteAlat(id);
 
       if (!mounted) return;
 
       Navigator.of(context).pop(true);
+      widget.onSuccess?.call();
 
-      // Show success popup
       SuccessPopup.show(context, 'Alat berhasil dihapus!');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isDeleting = false);
+      
+      setState(() {
+        _isDeleting = false;
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
     }
   }
 
@@ -617,6 +753,16 @@ class _DeleteAlatConfirmationDialogState
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
+            
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            
             const SizedBox(height: 20),
 
             Row(
@@ -628,7 +774,7 @@ class _DeleteAlatConfirmationDialogState
                         : () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: Color(0xFFEBEFF2)),
+                      side: const BorderSide(color: Color(0xFFEBEFF2)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -638,7 +784,7 @@ class _DeleteAlatConfirmationDialogState
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFEBEFF2),
+                        color: const Color(0xFFEBEFF2),
                       ),
                     ),
                   ),
@@ -684,87 +830,17 @@ class _DeleteAlatConfirmationDialogState
   }
 }
 
-class SuccessPopup {
-  static void show(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-
-      barrierColor: Colors.black.withOpacity(0.7),
-      builder: (ctx) {
-        Future.delayed(const Duration(seconds: 2), () {
-          if (ctx.mounted) Navigator.pop(ctx);
-        });
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.topCenter,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 50),
-                padding: const EdgeInsets.fromLTRB(32, 70, 32, 32),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1F2937),
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 0,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 50),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
 InputDecoration _inputDecoration() {
   return InputDecoration(
     filled: true,
     fillColor: Colors.white,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Color(0xFF3A587A)),
+      borderSide: const BorderSide(color: Color(0xFF3A587A)),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Color(0xFF3A587A)),
+      borderSide: const BorderSide(color: Color(0xFF3A587A)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),

@@ -1,7 +1,8 @@
+import 'package:aplikasi_peminjaman_alat/models/pengguna_model.dart';
 import 'package:flutter/material.dart';
 
 class PenggunaCard extends StatefulWidget {
-  final Map<String, dynamic> pengguna;
+  final PenggunaModel pengguna;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -54,14 +55,6 @@ class _PenggunaCardState extends State<PenggunaCard> {
 
   @override
   Widget build(BuildContext context) {
-    final id = widget.pengguna['pengguna_id']?.toString() ??
-        widget.pengguna['id']?.toString() ??
-        UniqueKey().toString();
-
-    String initial = widget.pengguna["name"].toString().isNotEmpty
-        ? widget.pengguna["name"][0].toUpperCase()
-        : "?";
-
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -77,52 +70,52 @@ class _PenggunaCardState extends State<PenggunaCard> {
         ],
       ),
       child: Row(
-  crossAxisAlignment: CrossAxisAlignment.center,
-  children: [
-    Container(
-      width: 70,
-      height: 70,
-      decoration: const BoxDecoration(
-        color: Color(0xFF3A587A),
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 40,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-
-    const SizedBox(width: 14),
-
-    Expanded(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            widget.pengguna["name"] ?? "Unknown",
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
-              color: Colors.black,
+          Container(
+            width: 70,
+            height: 70,
+            decoration: const BoxDecoration(
+              color: Color(0xFF3A587A),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              widget.pengguna.initial,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 40,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          const SizedBox(height: 3),
-          Text(
-            widget.pengguna["role"] ?? "Peminjam",
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.black54,
+
+          const SizedBox(width: 14),
+
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.pengguna.nama,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  widget.pengguna.roleFormatted.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-    ),
 
           Container(
             decoration: BoxDecoration(
@@ -157,7 +150,6 @@ class _PenggunaCardState extends State<PenggunaCard> {
                   ),
                 ),
 
-
                 // Tombol Delete
                 InkWell(
                   borderRadius: const BorderRadius.only(
@@ -169,7 +161,7 @@ class _PenggunaCardState extends State<PenggunaCard> {
                     width: 46,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: isDeleteActive ?Colors.white : Colors.white,
+                      color: isDeleteActive ? Colors.white : Colors.white,
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(14),
                         bottomRight: Radius.circular(14),

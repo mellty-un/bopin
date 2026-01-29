@@ -57,6 +57,7 @@ class _KategoriCardState extends State<KategoriCard> {
   Widget build(BuildContext context) {
     final id = widget.kategori['kategori_id']?.toString() ??
         widget.kategori['id']?.toString() ??
+        widget.kategori['id_kategori']?.toString() ??
         UniqueKey().toString();
 
     return Container(
@@ -86,7 +87,9 @@ class _KategoriCardState extends State<KategoriCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.kategori["name"] ?? "Unknown",
+                  widget.kategori["nama_kategori"] ?? 
+                  widget.kategori["name"] ?? 
+                  "Unknown",
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 24,

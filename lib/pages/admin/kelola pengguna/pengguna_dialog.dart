@@ -1,10 +1,11 @@
-import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
+import 'package:aplikasi_peminjaman_alat/core/services/pengguna_service.dart';
 import 'package:aplikasi_peminjaman_alat/core/utils/validator.dart';
+import 'package:aplikasi_peminjaman_alat/models/pengguna_model.dart';
 import 'package:flutter/material.dart';
-
+import 'package:flutter/services.dart';
 
 class PenggunaDialog extends StatefulWidget {
-  final Map<String, dynamic>? pengguna;
+  final PenggunaModel? pengguna;
   final bool isEdit;
 
   const PenggunaDialog({super.key, this.pengguna, this.isEdit = false});
@@ -23,18 +24,45 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
   String? _selectedRole;
 
   bool _isLoading = false;
+  bool _loadingEmail = false;
   String? _errorMessage;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
     super.initState();
     if (widget.isEdit && widget.pengguna != null) {
-      _nameController.text = widget.pengguna!['name'] ?? '';
-      _emailController.text = widget.pengguna!['email'] ?? '';
-      _passwordController.text = '';
-      _selectedRole = widget.pengguna!['role'] ?? 'Peminjam';
-    } else {
-      _selectedRole = 'Peminjam'; 
+      _nameController.text = widget.pengguna!.nama;
+      _selectedRole = widget.pengguna!.roleFormatted;
+      
+      if (widget.pengguna!.email != null && widget.pengguna!.email!.isNotEmpty) {
+        _emailController.text = widget.pengguna!.email!;
+      } else {
+        _loadUserEmail();
+      }
+    }
+  }
+
+  Future<void> _loadUserEmail() async {
+    if (widget.pengguna == null) return;
+    
+    setState(() => _loadingEmail = true);
+    
+    try {
+      final detail = await PenggunaService.getPenggunaDetail(widget.pengguna!.idUser);
+      if (mounted) {
+        setState(() {
+          _emailController.text = detail['email'] ?? '';
+          _loadingEmail = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingEmail = false;
+          _emailController.text = '';
+        });
+      }
     }
   }
 
@@ -59,31 +87,31 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
     setState(() => _isLoading = true);
 
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      if (widget.isEdit) {
+        await PenggunaService.updatePengguna(
+          idUser: widget.pengguna!.idUser,
+          nama: _nameController.text.trim(),
+          role: _selectedRole!,
+          email: _emailController.text.trim(),
+        );
+      } else {
+        await PenggunaService.createPengguna(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+          nama: _nameController.text.trim(),
+          role: _selectedRole!,
+        );
+      }
 
       if (!mounted) return;
-
       Navigator.of(context).pop(true);
-
-      SuccessPopup.show(
-        context,
-        widget.isEdit ? 'Pengguna berhasil diperbarui' : 'Pengguna berhasil ditambahkan',
-      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Gagal menyimpan. Silakan coba lagi.';
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
     }
-  }
-
-  // Validasi khusus untuk dropdown role
-  String? _validateRole(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Role wajib dipilih';
-    }
-    return null;
   }
 
   @override
@@ -96,7 +124,6 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -142,7 +169,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: '',
+                    hintText: 'Masukkan nama lengkap',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -150,12 +177,12 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                       horizontal: 16,
                       vertical: 14,
                     ),
-                    errorMaxLines: 2,
                   ),
                   validator: (value) => Validator.name(value),
                 ),
                 const SizedBox(height: 16),
 
+                // Form Role
                 const Text(
                   'Role',
                   style: TextStyle(fontWeight: FontWeight.w500),
@@ -183,7 +210,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                       _selectedRole = newValue;
                     });
                   },
-                  validator: (value) => _validateRole(value),
+                  validator: (value) => value == null ? 'Role harus dipilih' : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -193,56 +220,122 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                   style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    hintText: '',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    errorMaxLines: 2,
-                  ),
-                  validator: (value) => Validator.email(value),
-                ),
-                const SizedBox(height: 16),
-
-                // Form Kata Sandi
-                const Text(
-                  'Kata Sandi',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    hintText: widget.isEdit ? '' : '',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    errorMaxLines: 2,
-                  ),
-                  validator: widget.isEdit 
-                      ? (value) {
+                _loadingEmail
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      )
+                    : TextFormField(
+                        controller: _emailController,
+                        enabled: true,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          hintText: 'namasaya123456@gmail.com',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                        validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return null;
+                            return 'Email harus diisi';
                           }
-                          return Validator.password(value);
-                        }
-                      : (value) => Validator.password(value),
-                ),
+                          
+                          // Wajib @gmail.com
+                          if (!value.endsWith('@gmail.com')) {
+                            return 'Email harus menggunakan @gmail.com';
+                          }
+                          
+                          final parts = value.split('@');
+                          if (parts.length != 2) return 'Format tidak valid';
+                          
+                          final beforeAt = parts[0];
+                          
+                          // **SUPABASE MINIMAL 6 KARAKTER SEBELUM @**
+                          if (beforeAt.length < 6) {
+                            return 'Minimal 6 karakter sebelum @\n'
+                                   'Saran: ${beforeAt}123456@gmail.com';
+                          }
+                          
+                          if (value.contains(' ')) {
+                            return 'Email tidak boleh mengandung spasi';
+                          }
+                          
+                          return null;
+                        },
+                      ),
+                
+             
+                // Form Password (hanya untuk tambah)
+                if (!widget.isEdit) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Kata Sandi',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    decoration: InputDecoration(
+                      hintText: 'Masukkan 6-20 angka',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      prefixIcon: Icon(Icons.lock, size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword 
+                              ? Icons.visibility_off 
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
+                    validator: (value) => Validator.password(value),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(
+                      'Hanya angka 0-9, minimal 6 digit',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 24),
 
-                // Tombol Batal dan Simpan
+                // Tombol
                 Row(
                   children: [
                     Expanded(
@@ -297,123 +390,6 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class DeleteConfirmationDialog extends StatefulWidget {
-  final String penggunaName;
-  final String penggunaId;
-
-  const DeleteConfirmationDialog({
-    super.key,
-    required this.penggunaName,
-    required this.penggunaId,
-  });
-
-  @override
-  State<DeleteConfirmationDialog> createState() =>
-      _DeleteConfirmationDialogState();
-}
-
-class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
-  bool _isDeleting = false;
-
-  Future<void> _handleDelete() async {
-    if (_isDeleting) return;
-    setState(() => _isDeleting = true);
-
-    try {
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (!mounted) return;
-
-      Navigator.of(context).pop(true);
-
-      SuccessPopup.show(context, 'Pengguna berhasil dihapus');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isDeleting = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 6,
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              "Hapus Pengguna",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-
-            Text(
-              'Apakah Anda yakin ingin menghapus "${widget.penggunaName}"?',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: Color(0xFF4B5563)),
-            ),
-            const SizedBox(height: 24),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                OutlinedButton(
-                  onPressed: _isDeleting ? null : () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    "Batal",
-                    style: TextStyle(fontSize: 15),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                ElevatedButton(
-                  onPressed: _isDeleting ? null : _handleDelete,
-                  style: ElevatedButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    backgroundColor: const Color(0xFFDC2626),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isDeleting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          "Hapus",
-                          style: TextStyle(color: Colors.white, fontSize: 15),
-                        ),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );

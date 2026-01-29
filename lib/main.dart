@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         title: 'boPin',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const AlatPage(),
+        home: const SplashScreen(),
       ),
     );
   }

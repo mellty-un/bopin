@@ -1,7 +1,7 @@
 import 'package:aplikasi_peminjaman_alat/core/theme/app_color.dart';
 import 'package:aplikasi_peminjaman_alat/core/utils/validator.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/dashboard/admin_dashboard.dart';
-import 'package:aplikasi_peminjaman_alat/pages/peminjam/peminjam_dashboard.dart';
+import 'package:aplikasi_peminjaman_alat/pages/peminjam/dashboard/peminjam_dashboard.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/petugas_dashboard.dart';
 import 'package:aplikasi_peminjaman_alat/provider/auth_provider.dart';
 import 'package:flutter/material.dart';

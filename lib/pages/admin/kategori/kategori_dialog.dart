@@ -1,11 +1,18 @@
+import 'package:aplikasi_peminjaman_alat/core/services/kategori_service.dart';
 import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
 import 'package:flutter/material.dart';
 
 class KategoriDialog extends StatefulWidget {
   final Map<String, dynamic>? kategori;
   final bool isEdit;
+  final VoidCallback? onSuccess;
 
-  const KategoriDialog({super.key, this.kategori, this.isEdit = false});
+  const KategoriDialog({
+    super.key, 
+    this.kategori, 
+    this.isEdit = false,
+    this.onSuccess,
+  });
 
   @override
   State<KategoriDialog> createState() => _KategoriDialogState();
@@ -14,6 +21,7 @@ class KategoriDialog extends StatefulWidget {
 class _KategoriDialogState extends State<KategoriDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final KategoriService _kategoriService = KategoriService();
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -22,7 +30,8 @@ class _KategoriDialogState extends State<KategoriDialog> {
   void initState() {
     super.initState();
     if (widget.isEdit && widget.kategori != null) {
-      _nameController.text = widget.kategori!['name'] ?? '';
+      _nameController.text = widget.kategori!['nama_kategori'] ?? 
+                            widget.kategori!['name'] ?? '';
     }
   }
 
@@ -40,11 +49,22 @@ class _KategoriDialogState extends State<KategoriDialog> {
     setState(() => _isLoading = true);
 
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      final namaKategori = _nameController.text.trim();
+      
+      if (widget.isEdit && widget.kategori != null) {
+        final id = widget.kategori!['id_kategori'] ?? widget.kategori!['id'] ?? 0;
+        await _kategoriService.updateKategori(
+          idKategori: id,
+          namaKategori: namaKategori,
+        );
+      } else {
+        await _kategoriService.createKategori(namaKategori);
+      }
 
       if (!mounted) return;
 
       Navigator.of(context).pop(true);
+      widget.onSuccess?.call();
 
       SuccessPopup.show(
         context,
@@ -54,12 +74,11 @@ class _KategoriDialogState extends State<KategoriDialog> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Gagal menyimpan. Silakan coba lagi.';
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
     }
   }
 
-  // Validasi khusus untuk nama kategori
   String? _validateKategoriName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Nama kategori wajib diisi';
@@ -89,7 +108,6 @@ class _KategoriDialogState extends State<KategoriDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header dialog
                 Center(
                   child: Text(
                     widget.isEdit ? 'Edit Kategori' : 'Tambah Kategori',
@@ -143,7 +161,6 @@ class _KategoriDialogState extends State<KategoriDialog> {
                 ),
                 const SizedBox(height: 24),
 
-                // Tombol Batal dan Simpan
                 Row(
                   children: [
                     Expanded(
@@ -207,11 +224,13 @@ class _KategoriDialogState extends State<KategoriDialog> {
 class DeleteConfirmationDialog extends StatefulWidget {
   final String kategoriName;
   final String kategoriId;
+  final VoidCallback? onSuccess;
 
   const DeleteConfirmationDialog({
     super.key,
     required this.kategoriName,
     required this.kategoriId,
+    this.onSuccess,
   });
 
   @override
@@ -220,23 +239,35 @@ class DeleteConfirmationDialog extends StatefulWidget {
 }
 
 class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
+  final KategoriService _kategoriService = KategoriService();
   bool _isDeleting = false;
+  String? _errorMessage;
 
   Future<void> _handleDelete() async {
     if (_isDeleting) return;
-    setState(() => _isDeleting = true);
+    
+    setState(() {
+      _isDeleting = true;
+      _errorMessage = null;
+    });
 
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      final id = int.tryParse(widget.kategoriId) ?? 0;
+      await _kategoriService.deleteKategori(id);
 
       if (!mounted) return;
 
       Navigator.of(context).pop(true);
+      widget.onSuccess?.call();
 
       SuccessPopup.show(context, 'Kategori berhasil dihapus');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isDeleting = false);
+      
+      setState(() {
+        _isDeleting = false;
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
     }
   }
 
@@ -267,6 +298,24 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15, color: Color(0xFF4B5563)),
             ),
+            
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  border: Border.all(color: Colors.red.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+            
             const SizedBox(height: 24),
 
             Row(
