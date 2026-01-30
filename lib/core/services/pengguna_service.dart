@@ -121,6 +121,7 @@ static Future<String> createPengguna({
     final localPart = parts[0];
     final domain = parts[1];
     
+    // Tambahkan angka untuk memenuhi minimal karakter Supabase
     if (localPart.length < 6) {
       return '${localPart}123456@$domain';
     }
