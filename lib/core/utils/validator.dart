@@ -6,7 +6,6 @@ class Validator {
     
     final email = value.trim();
     
-    // Wajib @gmail.com
     if (!email.endsWith('@gmail.com')) {
       return 'Email harus menggunakan @gmail.com';
     }
@@ -16,15 +15,12 @@ class Validator {
     
     final localPart = parts[0];
     
-    // **SUPABASE MINIMAL 6 KARAKTER SEBELUM @**
     if (localPart.length < 3) {
     }
     
     if (email.contains(' ')) {
       return 'Email tidak boleh mengandung spasi';
     }
-    
-    // Format dasar
     final emailPattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (!emailPattern.hasMatch(email)) {
       return 'Format email tidak valid';
@@ -48,7 +44,6 @@ class Validator {
       return 'Password maksimal 20 angka';
     }
     
-    // Hanya angka
     final numericRegex = RegExp(r'^[0-9]+$');
     if (!numericRegex.hasMatch(password)) {
       return 'Password hanya boleh berisi angka (0-9)';

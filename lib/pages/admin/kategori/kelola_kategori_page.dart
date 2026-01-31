@@ -158,7 +158,6 @@ class _KelolaKategoriPageState extends State<KelolaKategoriPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Header dengan menu dan judul
             Padding(
               padding: const EdgeInsets.only(top: 16, bottom: 10),
               child: Row(
@@ -287,7 +286,6 @@ class _KelolaKategoriPageState extends State<KelolaKategoriPage> {
 
                     const SizedBox(width: 10),
 
-                    // Tombol Add
                     InkWell(
                       onTap: () => _showAddEditDialog(),
                       borderRadius: BorderRadius.circular(12),

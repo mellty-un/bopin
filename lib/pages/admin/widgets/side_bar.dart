@@ -1,3 +1,7 @@
+import 'package:aplikasi_peminjaman_alat/pages/petugas/laporan/laporan_page.dart';
+import 'package:aplikasi_peminjaman_alat/pages/petugas/peminjaman/peminjaman_page.dart';
+import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_page.dart';
+import 'package:aplikasi_peminjaman_alat/pages/petugas/petugas_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -8,6 +12,9 @@ import 'package:aplikasi_peminjaman_alat/pages/admin/kategori/kelola_kategori_pa
 import 'package:aplikasi_peminjaman_alat/pages/admin/kelola pengguna/kelola_pengguna_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/riwayat/riwayat_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/log_aktivitas/log_aktivitas.dart';
+
+// Import halaman login
+import 'package:aplikasi_peminjaman_alat/pages/auth/login_page.dart'; // PASTIKAN PATH INI BENAR
 
 enum UserRole { admin, petugas, peminjam }
 
@@ -161,14 +168,16 @@ class _SideBarState extends State<SideBar> {
 
   // ================= PETUGAS =================
   List<Widget> _petugasMenu() => [
-        _menuItem(title: "Dashboard", page: "Dashboard"),
-        _menuItem(title: "Peminjaman", page: "Peminjaman"),
+        _menuItem(title: "Dashboars", page: "DashboardPetugas", onTap: () => _go(const PetugasDashboard())),
+        _menuItem(title: "Pengembalian", page: "PengembalianPetugas", onTap: () => _go(const PengembalianPage())),
+        _menuItem(title: "Laporans", page: "LaporanPetugas", onTap: () => _go(const LaporanPage())),
+        _menuItem(title: "Peminjama", page: "PeminjamanPetugas", onTap: () => _go(const PeminjamanPage())),
       ];
 
   // ================= PEMINJAM =================
   List<Widget> _peminjamMenu() => [
-        _menuItem(title: "Dashboard", page: "Dashboard"),
-        _menuItem(title: "Alat", page: "Alat"),
+        _menuItem(title: "Dashboard", page: "PeminjamDashboard"),
+        _menuItem(title: "Alat", page: "Alat Peminjam"),
       ];
 
   // ================= MENU ITEM =================
@@ -218,18 +227,69 @@ class _SideBarState extends State<SideBar> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Keluar"),
+        title: const Text(
+          "Keluar",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text("Apakah Anda yakin ingin keluar?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
           TextButton(
-            onPressed: () async {
-              await supabase.auth.signOut();
-            },
-            child: const Text("Keluar"),
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "Batal",
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          TextButton(
+            onPressed: _performLogout,
+            child: const Text(
+              "Ya",
+              style: TextStyle(color: Color(0xFFE85C5C), fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      // Tutup dialog
+      if (context.mounted) Navigator.pop(context);
+      
+      // Tampilkan loading indicator
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      // Lakukan sign out
+      await supabase.auth.signOut();
+
+      // Tutup loading indicator dan navigasi ke login page
+      if (context.mounted) {
+        Navigator.pop(context); // Tutup loading
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()), // Ganti dengan halaman login Anda
+          (route) => false, // Hapus semua halaman dari stack
+        );
+      }
+    } catch (e) {
+      // Jika terjadi error, tetap navigasi ke login
+      if (context.mounted) {
+        Navigator.pop(context); // Tutup loading
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
+        );
+      }
+    }
   }
 }

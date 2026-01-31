@@ -5,7 +5,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class DendaService {
   final SupabaseClient _supabase = SupabaseService.client;
 
-  // Get all denda
   Future<List<Denda>> getAllDenda() async {
     try {
       final response = await _supabase
@@ -44,7 +43,6 @@ class DendaService {
     }
   }
 
-  // Update denda
   Future<Denda> updateDenda({
     required int idDenda,
     required String jenisDenda,
@@ -69,7 +67,6 @@ class DendaService {
     }
   }
 
-  // Delete denda
   Future<void> deleteDenda(int idDenda) async {
     try {
       await _supabase

@@ -30,7 +30,7 @@ Future<List<Alat>> getAllAlat() async {
       final Uint8List bytes = await file.readAsBytes();
 
       await _supabase.storage
-          .from('alat_images') // ✅ NAMA BUCKET BENAR
+          .from('alat_images') 
           .uploadBinary(
             fileName,
             bytes,
@@ -45,8 +45,6 @@ Future<List<Alat>> getAllAlat() async {
       throw Exception('Gagal upload gambar: $e');
     }
   }
-
-  /// Ambil URL public untuk Image.network
   String getImageUrl(String? fileName) {
     if (fileName == null || fileName.isEmpty) return '';
 
@@ -55,7 +53,6 @@ Future<List<Alat>> getAllAlat() async {
         .getPublicUrl(fileName);
   }
 
-  /// Hapus gambar dari storage
   Future<void> deleteImage(String fileName) async {
     try {
       await _supabase.storage

@@ -74,6 +74,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
     super.dispose();
   }
 
+  // ==================== FIXED _savePengguna FUNCTION ====================
   Future<void> _savePengguna() async {
     setState(() => _errorMessage = null);
 
@@ -88,30 +89,131 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
 
     try {
       if (widget.isEdit) {
+        final email = _emailController.text.trim().toLowerCase();
+        final role = _selectedRole!.toLowerCase();
+        
         await PenggunaService.updatePengguna(
           idUser: widget.pengguna!.idUser,
           nama: _nameController.text.trim(),
-          role: _selectedRole!,
-          email: _emailController.text.trim(),
+          role: role,
+          email: email,
         );
+        
+        print('✅ Update berhasil: ${widget.pengguna!.idUser}');
       } else {
-        await PenggunaService.createPengguna(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-          nama: _nameController.text.trim(),
-          role: _selectedRole!,
+        final email = _emailController.text.trim().toLowerCase();
+        final password = _passwordController.text.trim();
+        final nama = _nameController.text.trim();
+        final role = _selectedRole!.toLowerCase();
+        
+        if (email.isEmpty) {
+          throw Exception('Email tidak boleh kosong');
+        }
+        
+        if (password.isEmpty) {
+          throw Exception('Password tidak boleh kosong');
+        }
+        
+        if (nama.isEmpty) {
+          throw Exception('Nama tidak boleh kosong');
+        }
+        
+        if (!email.endsWith('@gmail.com')) {
+          throw Exception('Email harus menggunakan @gmail.com');
+        }
+        
+        final localPart = email.split('@')[0];
+        if (localPart.length < 6) {
+          throw Exception('Email minimal 6 karakter sebelum @\nContoh: ${localPart}123456@gmail.com');
+        }
+        
+        print('🔄 Membuat pengguna: $email, role: $role');
+        
+        final userId = await PenggunaService.createPengguna(
+          email: email,
+          password: password,
+          nama: nama,
+          role: role,
         );
+        
+        print('✅ Create berhasil, user ID: $userId');
       }
 
       if (!mounted) return;
+      
+      await Future.delayed(const Duration(milliseconds: 300));
+      
       Navigator.of(context).pop(true);
+      
     } catch (e) {
       if (!mounted) return;
+      
+      print('❌ Error di _savePengguna: $e');
+      
+      String errorMessage = e.toString();
+      
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring(11);
+      }
+      
+      if (errorMessage.contains('already registered') || 
+          errorMessage.contains('Email sudah terdaftar')) {
+        errorMessage = 'Email sudah terdaftar di sistem';
+      }
+      
+      if (errorMessage.contains('Password minimal')) {
+        errorMessage = 'Password minimal 6 angka';
+      }
+      
+      if (errorMessage.contains('minimal 6 karakter')) {
+        errorMessage = 'Email minimal 6 karakter sebelum @\nContoh: nama123456@gmail.com';
+      }
+      
       setState(() {
         _isLoading = false;
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = errorMessage;
+      });
+      
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted && _errorMessage == errorMessage) {
+          setState(() => _errorMessage = null);
+        }
       });
     }
+  }
+
+  // ==================== VALIDASI EMAIL YANG FIXED ====================
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Email wajib diisi';
+    }
+    
+    final email = value.trim();
+    
+    if (!email.endsWith('@gmail.com')) {
+      return 'Email harus menggunakan @gmail.com';
+    }
+    
+    final parts = email.split('@');
+    if (parts.length != 2) return 'Format email tidak valid';
+    
+    final localPart = parts[0];
+    final domain = parts[1];
+    
+    if (localPart.length < 6) {
+      return 'Email terlalu pendek.\nMinimal 6 karakter sebelum @\nSaran: ${localPart}123456@gmail.com';
+    }
+    
+    if (email.contains(' ')) {
+      return 'Email tidak boleh mengandung spasi';
+    }
+    
+    final emailPattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    if (!emailPattern.hasMatch(email)) {
+      return 'Format email tidak valid';
+    }
+    
+    return null;
   }
 
   @override
@@ -169,7 +271,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: 'Masukkan nama lengkap',
+                    hintText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -240,7 +342,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                         enabled: true,
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          hintText: 'namasaya123456@gmail.com',
+                          hintText: '',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -249,37 +351,9 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                             vertical: 14,
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Email harus diisi';
-                          }
-                          
-                          // Wajib @gmail.com
-                          if (!value.endsWith('@gmail.com')) {
-                            return 'Email harus menggunakan @gmail.com';
-                          }
-                          
-                          final parts = value.split('@');
-                          if (parts.length != 2) return 'Format tidak valid';
-                          
-                          final beforeAt = parts[0];
-                          
-                          // **SUPABASE MINIMAL 6 KARAKTER SEBELUM @**
-                          if (beforeAt.length < 6) {
-                            return 'Minimal 6 karakter sebelum @\n'
-                                   'Saran: ${beforeAt}123456@gmail.com';
-                          }
-                          
-                          if (value.contains(' ')) {
-                            return 'Email tidak boleh mengandung spasi';
-                          }
-                          
-                          return null;
-                        },
+                        validator: _validateEmail,
                       ),
                 
-             
-                // Form Password (hanya untuk tambah)
                 if (!widget.isEdit) ...[
                   const SizedBox(height: 16),
                   const Text(
@@ -297,7 +371,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                       FilteringTextInputFormatter.digitsOnly,
                     ],
                     decoration: InputDecoration(
-                      hintText: 'Masukkan 6-20 angka',
+                      hintText: '',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -305,7 +379,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                         horizontal: 16,
                         vertical: 14,
                       ),
-                      prefixIcon: Icon(Icons.lock, size: 20),
+                      prefixIcon: const Icon(Icons.lock, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword 
@@ -321,16 +395,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                     ),
                     validator: (value) => Validator.password(value),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(
-                      'Hanya angka 0-9, minimal 6 digit',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
+                  
                 ],
 
                 const SizedBox(height: 24),

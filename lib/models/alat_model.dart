@@ -6,7 +6,7 @@ class Alat {
   final String? gambar;
   final int? stokTotal;
   final int? stokTersedia;
-  final Kategori? kategori; // Ini harus ada
+  final Kategori? kategori; 
 
   Alat({
     required this.idAlat,

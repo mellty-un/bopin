@@ -164,13 +164,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
             }
           }
 
-          // Tentukan tipe berdasarkan kondisi
           String title = 'Pengembalian';
           if (namaAlat != null) {
             title = namaAlat;
           }
 
-          // Format tanggal
           String formattedDate = 'Tidak diketahui';
           if (item['tgl_dikembalikan'] != null) {
             try {
@@ -197,13 +195,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
       });
     } catch (e) {
       print('Error loading recent history: $e');
-      // Gunakan data dummy jika error
       _loadDummyHistory();
     }
   }
 
   void _loadDummyHistory() {
-    // Data fallback jika tidak bisa load dari database
     setState(() {
       recentHistory = [
         {

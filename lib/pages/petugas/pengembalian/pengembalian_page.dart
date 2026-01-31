@@ -1,3 +1,4 @@
+import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_dialog.dart';
 import 'package:flutter/material.dart';
 import 'pengembalian_card.dart';
@@ -12,8 +13,9 @@ class PengembalianPage extends StatefulWidget {
 class _PengembalianPageState extends State<PengembalianPage> {
   final TextEditingController _searchController = TextEditingController();
   String selectedFilter = "Semua";
+    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Data untuk card Viona
+
   List<Map<String, dynamic>> vionaAlatList = [
     {'nama': 'Panci', 'jumlah': 1, 'kondisi': 'Rusak'},
     {'nama': 'Pisau', 'jumlah': 1, 'kondisi': 'Baik'},
@@ -44,7 +46,7 @@ class _PengembalianPageState extends State<PengembalianPage> {
       "id": "2",
       "nama": "Asel",
       "tanggal": "30/01/2026",
-      "status": "Selesai", // Sudah Selesai
+      "status": "Selesai",
       "alatList": [],
       "tanggalPeminjaman": "18/01/2026",
       "tanggalPengembalian": "22/01/2026",
@@ -57,12 +59,10 @@ class _PengembalianPageState extends State<PengembalianPage> {
   @override
   void initState() {
     super.initState();
-    // Isi data alatList untuk setiap item
     _dummyData[0]["alatList"] = vionaAlatList;
     _dummyData[1]["alatList"] = aselAlatList;
   }
 
-  // Fungsi untuk mengubah status menjadi "Selesai"
   void _updateStatusToSelesai(String id) {
     setState(() {
       final index = _dummyData.indexWhere((item) => item["id"] == id);
@@ -88,25 +88,40 @@ class _PengembalianPageState extends State<PengembalianPage> {
     List<Map<String, dynamic>> filteredData = getFilteredData();
 
     return Scaffold(
+     key: _scaffoldKey,
+      drawer: Padding(
+        padding: const EdgeInsets.only(top: 70, bottom: 60),
+        child: const SideBar(currentPage: "PengembalianPetugas"),
+      ),
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            // Title Bar
-            Row(
-              children: const [
-                Icon(Icons.menu, size: 28),
-                SizedBox(width: 12),
-                Text(
-                  "Pengembalian",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-              ],
-            ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 10),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.menu, size: 32),
+                      onPressed: () {
+                        _scaffoldKey.currentState?.openDrawer();
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    const Text(
+                      "Pengembalian",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
 
             const SizedBox(height: 20),
 
@@ -196,6 +211,7 @@ class _PengembalianPageState extends State<PengembalianPage> {
             )
           ],
         ),
+      ),
       ),
     );
   }

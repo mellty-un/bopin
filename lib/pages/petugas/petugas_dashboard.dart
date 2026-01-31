@@ -1,4 +1,5 @@
 import 'package:aplikasi_peminjaman_alat/core/theme/app_color.dart';
+import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 
 class PetugasDashboard extends StatefulWidget {
@@ -9,6 +10,10 @@ class PetugasDashboard extends StatefulWidget {
 }
 
 class _PetugasDashboardState extends State<PetugasDashboard> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+
+
 @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -16,6 +21,11 @@ class _PetugasDashboardState extends State<PetugasDashboard> {
     final cardHeight = 133;
 
     return Scaffold(
+       key: _scaffoldKey,
+      drawer: Padding(
+        padding: const EdgeInsets.only(top: 60, bottom: 60),
+        child: const SideBar(currentPage: "DashboardPetugas"),
+      ),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -23,36 +33,30 @@ class _PetugasDashboardState extends State<PetugasDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 16),
+              Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 10),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Icon(Icons.menu, size: 28, color: Colors.black87),
+                    IconButton(
+                      icon: const Icon(Icons.menu, size: 32, color: Colors.black87),
+                      onPressed: () {
+                        _scaffoldKey.currentState?.openDrawer();
+                      },
+                    ),
                     const SizedBox(width: 16),
                     const Text(
-                      'Dashboard',
+                      "Dashboard",
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const Spacer(),
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: AppColor.primary,
-                      child: const Text(
-                        'MT',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                        color: Colors.black,
                       ),
                     ),
                   ],
                 ),
               ),
+              
                          
 
 
@@ -169,188 +173,163 @@ class _PetugasDashboardState extends State<PetugasDashboard> {
   }
 
  Widget _buildStatCard({
-  required IconData icon,
-  required String value,
-  required String label,
-}) {
-  return Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEBEFF2),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: const Color(0xFF2A3440),
-        width: 2,
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F4F6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF9FB2C9),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.15),
-          blurRadius: 10,
-          spreadRadius: 1,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ICON (kiri atas)
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFb1bdc7),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(
-            icon,
-            size: 22,
-            color: Colors.black,
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        // AREA TENGAH
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // VALUE → CENTER
-              Center(
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 4),
-
-              // LABEL → KIRI
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
- // History Item Widget
-Widget _historyItem({
-  required String title,
-  required String subtitle,
-  required String qty,
-  required String date,
-}) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 10),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 4,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        // ✅ ICON CHECK CIRCLE
-        Container(
-          width: 36,
-          height: 36,
-          decoration: const BoxDecoration(
-            color: Colors.green,
-            shape: BoxShape.circle,
-          ),
-          child: const Center(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD1D8DE),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Icon(
-              Icons.check,
-              color: Colors.white,
+              icon,
               size: 20,
+              color: Colors.black87,
             ),
           ),
-        ),
+          const SizedBox(height: 3),
+          Center(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-        const SizedBox(width: 12),
-
-        // TITLE & SUBTITLE
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+ Widget _historyItem({
+    required String title,
+    required String subtitle,
+    required String qty,
+    required String date,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFF22C55E), 
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.check,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7), 
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF16A34A), 
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                title,
+                qty,
                 style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: 12,
                   color: Colors.black87,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.green.shade700,
-                    fontWeight: FontWeight.w500,
-                  ),
+              const SizedBox(height: 4),
+              Text(
+                date,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade500,
                 ),
               ),
             ],
           ),
-        ),
-
-        // QTY & DATE
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              qty,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              date,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
 }
 }

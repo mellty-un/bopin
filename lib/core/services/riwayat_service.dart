@@ -5,22 +5,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class RiwayatService {
   final SupabaseClient _supabase = SupabaseService.client;
 
-  // Get all riwayat pengembalian dengan join yang benar
   Future<List<Riwayat>> getAllRiwayat() async {
     try {
-      // Coba query dengan multiple queries terpisah untuk menghindari error relationship
       return await _getAllRiwayatWithSeparateQueries();
     } catch (e) {
       print('Error in getAllRiwayat: $e');
-      // Jika masih error, coba query alternatif yang lebih sederhana
       return await _getAllRiwayatFallback();
     }
   }
 
-  // Method dengan query terpisah untuk menghindari error relationship
   Future<List<Riwayat>> _getAllRiwayatWithSeparateQueries() async {
     try {
-      // 1. Ambil semua pengembalian
       final pengembalianResponse = await _supabase
           .from('pengembalian')
           .select()
@@ -37,7 +32,6 @@ class RiwayatService {
           final idPeminjaman = pengembalian['id_peminjaman'] as int?;
           if (idPeminjaman == null) continue;
 
-          // 2. Ambil data peminjaman dengan user
           final peminjamanResponse = await _supabase
               .from('peminjaman')
               .select('''
@@ -51,8 +45,6 @@ class RiwayatService {
               .single();
 
           if (peminjamanResponse == null) continue;
-
-          // 3. Ambil data detail peminjaman untuk nama alat
           final detailResponse = await _supabase
               .from('detail_peminjaman')
               .select('''
@@ -64,11 +56,9 @@ class RiwayatService {
               .eq('id_peminjaman', idPeminjaman)
               .limit(1);
 
-          // 4. Parse data users
           final usersData = peminjamanResponse['users'] as Map<String, dynamic>?;
           final namaUser = usersData?['nama'] as String?;
 
-          // 5. Parse data alat
           String? namaAlat;
           if (detailResponse.isNotEmpty) {
             final detail = detailResponse[0] as Map<String, dynamic>;
@@ -76,7 +66,6 @@ class RiwayatService {
             namaAlat = alatData?['nama_alat'] as String?;
           }
 
-          // 6. Parse tanggal dengan format yang benar
           DateTime? parseDate(dynamic dateValue) {
             if (dateValue == null) return null;
             if (dateValue is DateTime) return dateValue;
@@ -84,7 +73,6 @@ class RiwayatService {
               try {
                 return DateTime.parse(dateValue);
               } catch (e) {
-                // Coba format date saja (tanpa waktu)
                 try {
                   return DateTime.parse('${dateValue}T00:00:00');
                 } catch (e2) {
@@ -124,7 +112,6 @@ class RiwayatService {
     }
   }
 
-  // Helper method untuk parse integer
   int? _parseInt(dynamic value) {
     if (value == null) return null;
     if (value is int) return value;
@@ -140,10 +127,8 @@ class RiwayatService {
     return null;
   }
 
-  // Fallback method dengan query yang lebih sederhana
   Future<List<Riwayat>> _getAllRiwayatFallback() async {
     try {
-      // Query sederhana tanpa join kompleks
       final pengembalianResponse = await _supabase
           .from('pengembalian')
           .select()
@@ -160,14 +145,12 @@ class RiwayatService {
         if (idPeminjaman == null) continue;
 
         try {
-          // Ambil data peminjaman terpisah
           final peminjamanResponse = await _supabase
               .from('peminjaman')
               .select()
               .eq('id_peminjaman', idPeminjaman)
               .single();
 
-          // Ambil nama user dari tabel users
           final idUser = peminjamanResponse['id_user'] as String?;
           String? namaUser;
           if (idUser != null) {
@@ -179,7 +162,6 @@ class RiwayatService {
             namaUser = userResponse['nama'] as String?;
           }
 
-          // Ambil data alat terpisah
           String? namaAlat;
           final detailResponse = await _supabase
               .from('detail_peminjaman')
@@ -200,15 +182,12 @@ class RiwayatService {
             }
           }
 
-          // Parse tanggal
           DateTime? parseDate(dynamic dateValue) {
             if (dateValue == null) return null;
             if (dateValue is String) {
               try {
-                // Coba format lengkap
                 return DateTime.parse(dateValue);
               } catch (e) {
-                // Coba format date saja
                 try {
                   return DateTime.parse('${dateValue}T00:00:00');
                 } catch (e2) {
@@ -248,7 +227,6 @@ class RiwayatService {
     }
   }
 
-  // Update pengembalian - FIXED
   Future<void> updatePengembalian({
     required int idPengembalian,
     required String kondisiPengembalian,
@@ -279,7 +257,6 @@ class RiwayatService {
     }
   }
 
-  // Delete pengembalian
   Future<void> deletePengembalian(int idPengembalian) async {
     try {
       await _supabase
@@ -291,7 +268,6 @@ class RiwayatService {
     }
   }
 
-  // Get pengembalian by ID
   Future<Riwayat> getPengembalianById(int id) async {
     try {
       final pengembalianResponse = await _supabase
@@ -305,14 +281,12 @@ class RiwayatService {
         throw Exception('Data peminjaman tidak ditemukan');
       }
 
-      // Ambil data peminjaman
       final peminjamanResponse = await _supabase
           .from('peminjaman')
           .select()
           .eq('id_peminjaman', idPeminjaman)
           .single();
 
-      // Ambil nama user
       final idUser = peminjamanResponse['id_user'] as String?;
       String? namaUser;
       if (idUser != null) {
@@ -324,7 +298,6 @@ class RiwayatService {
         namaUser = userResponse['nama'] as String?;
       }
 
-      // Ambil nama alat
       String? namaAlat;
       final detailResponse = await _supabase
           .from('detail_peminjaman')
@@ -381,7 +354,6 @@ class RiwayatService {
     }
   }
 
-  // Get kondisi pengembalian options
   List<String> getKondisiOptions() {
     return ['Baik', 'Rusak', 'Hilang'];
   }

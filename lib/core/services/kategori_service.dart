@@ -4,7 +4,6 @@ import 'package:aplikasi_peminjaman_alat/models/kategori_model.dart';
 class KategoriService {
   final _supabase = SupabaseService.client;
 
-  // Get all kategori
   Future<List<Kategori>> getAllKategori() async {
   try {
     final response = await _supabase
@@ -18,13 +17,12 @@ class KategoriService {
       kategoriList.add(Kategori.fromJson(item));
     }
     
-    return kategoriList; // Ini List<Kategori>
+    return kategoriList; 
   } catch (e) {
     throw Exception('Gagal mengambil data kategori: ${SupabaseService.handleError(e)}');
   }
 }
 
-  // Get kategori by ID
   Future<Kategori> getKategoriById(int id) async {
     try {
       final response = await _supabase
@@ -56,7 +54,6 @@ class KategoriService {
     }
   }
 
-  // Update kategori
   Future<Kategori> updateKategori({
     required int idKategori,
     required String namaKategori,
@@ -77,10 +74,8 @@ class KategoriService {
     }
   }
 
-  // Delete kategori
   Future<void> deleteKategori(int idKategori) async {
     try {
-      // Cek apakah kategori digunakan di tabel alat
       final alatResponse = await _supabase
           .from('alat')
           .select('id_alat')
@@ -100,7 +95,6 @@ class KategoriService {
     }
   }
 
-    // Get all kategori untuk dropdown
   Future<List<Map<String, dynamic>>> getAllKategoriForDropdown() async {
     try {
       final response = await _supabase
@@ -122,7 +116,6 @@ class KategoriService {
   }
 
 
-    // Get all kategori names untuk filter
   Future<List<String>> getAllKategoriNames() async {
     try {
       final response = await _supabase

@@ -19,6 +19,7 @@ class RiwayatCard extends StatefulWidget {
 class _RiwayatCardState extends State<RiwayatCard> {
   bool isEditActive = false;
   bool isDeleteActive = false;
+  bool expand = false;
 
   void _handleEdit() async {
     setState(() {
@@ -55,30 +56,29 @@ class _RiwayatCardState extends State<RiwayatCard> {
   Color _getKondisiColor(String kondisi) {
     switch (kondisi.toLowerCase()) {
       case 'baik':
-        return Color(0xFFD1FAE5); // Green light
+        return Color(0xFFD1FAE5);
       case 'rusak':
-        return Color(0xFFFEE2E2); // Red light
+        return Color(0xFFFEE2E2);
       case 'hilang':
-        return Color(0xFFFEF3C7); // Yellow light
+        return Color(0xFFFEF3C7);
       default:
-        return Color(0xFFE5E7EB); // Gray light
+        return Color(0xFFE5E7EB);
     }
   }
 
   Color _getKondisiTextColor(String kondisi) {
     switch (kondisi.toLowerCase()) {
       case 'baik':
-        return Color(0xFF047857); // Green dark
+        return Color(0xFF047857);
       case 'rusak':
-        return Color(0xFFDC2626); // Red dark
+        return Color(0xFFDC2626);
       case 'hilang':
-        return Color(0xFFD97706); // Yellow dark
+        return Color(0xFFD97706);
       default:
-        return Color(0xFF6B7280); // Gray dark
+        return Color(0xFF6B7280);
     }
   }
 
-  // Helper untuk format tanggal
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return '-';
     try {
@@ -91,187 +91,236 @@ class _RiwayatCardState extends State<RiwayatCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Ambil data dengan prioritas yang benar
     final kondisi = widget.riwayat['kondisi_pengembalian'] ?? 
                     widget.riwayat['kondisi'] ?? 
                     'Tidak diketahui';
     
-    // Ambil nama user dengan prioritas yang benar
     final namaUser = widget.riwayat['nama_user'] ?? 
                      widget.riwayat['nama'] ?? 
                      'Tidak diketahui';
     
-    // Ambil nama alat
     final namaAlat = widget.riwayat['nama_alat'] ?? 'Tidak diketahui';
-    
-    // Ambil catatan
     final catatan = widget.riwayat['catatan'] ?? '';
-    
-    // Format tanggal pengembalian
     final tglDikembalikan = _formatDate(widget.riwayat['tgl_dikembalikan']);
-    
-    // Format tanggal pinjam
     final tglPinjam = _formatDate(widget.riwayat['tgl_pinjam']);
-    
-    // Format tanggal harus kembali
     final tglKembali = _formatDate(widget.riwayat['tgl_kembali']);
-    
-    // Keterlambatan
     final keterlambatan = widget.riwayat['keterlambatan_hari'] ?? 0;
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          expand = !expand;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Nama user
-                Text(
-                  namaUser,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                
-                const SizedBox(height: 4),
-                
-                // Nama alat
-                if (namaAlat != 'Tidak diketahui')
-                  Text(
-                    namaAlat,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                
-                const SizedBox(height: 4),
-                
-                // Tanggal-tanggal
-                if (tglPinjam != '-' && tglKembali != '-')
-                  Row(
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Pinjam: $tglPinjam',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                        namaUser,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Kembali: $tglKembali',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                      
+                      const SizedBox(height: 4),
+                      
+                      if (namaAlat != 'Tidak diketahui')
+                        Text(
+                          namaAlat,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                          ),
                         ),
-                      ),
+                      
+                      const SizedBox(height: 4),
+                      
+                      if (tglPinjam != '-' && tglKembali != '-')
+                        Text(
+                          '$tglPinjam - $tglKembali',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
                     ],
-                  ),
-                
-                // Tanggal dikembalikan
-                if (tglDikembalikan != '-')
-                  Text(
-                    'Dikembalikan: $tglDikembalikan',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                
-                // Keterlambatan jika ada
-                if (keterlambatan > 0)
-                  Text(
-                    'Terlambat: $keterlambatan hari',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.red[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                
-                const SizedBox(height: 6),
-                
-                // Badge kondisi
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getKondisiColor(kondisi),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    kondisi,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: _getKondisiTextColor(kondisi),
-                    ),
                   ),
                 ),
                 
-                // Catatan jika ada
-                if (catatan.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      'Catatan: $catatan',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: _handleEdit,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(
+                          Icons.edit,
+                          size: 20,
+                          color: isEditActive ? Color(0xFF3A587A) : Colors.black54,
+                        ),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                    
+                    const SizedBox(width: 6),
+                    
+                    InkWell(
+                      onTap: _handleDelete,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(
+                          Icons.delete,
+                          size: 20,
+                          color: isDeleteActive ? Color(0xFFDC2626) : Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ),
-          
-          // Tombol Edit
-          InkWell(
-            onTap: _handleEdit,
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Icon(
-                Icons.edit,
-                size: 20,
-                color: isEditActive ? Color(0xFF3A587A) : Colors.black54,
+            
+            if (expand) ...[
+              const SizedBox(height: 16),
+              Container(
+                height: 1,
+                color: const Color(0xFFEEEEEE),
               ),
-            ),
-          ),
-          
-          const SizedBox(width: 6),
-          
-          // Tombol Delete
-          InkWell(
-            onTap: _handleDelete,
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Icon(
-                Icons.delete,
-                size: 20,
-                color: isDeleteActive ? Color(0xFFDC2626) : Colors.black54,
+              const SizedBox(height: 16),
+              
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (tglDikembalikan != '-')
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Dikembalikan: ',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          Text(
+                            tglDikembalikan,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+                  if (keterlambatan > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Keterlambatan: ',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          Text(
+                            '$keterlambatan hari',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.red[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Kondisi: ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getKondisiColor(kondisi),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            kondisi,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: _getKondisiTextColor(kondisi),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  if (catatan.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Catatan:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          catatan,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ),
-            ),
-          ),
-        ],
+            ],
+          ],
+        ),
       ),
     );
   }
