@@ -2,7 +2,7 @@ import 'package:aplikasi_peminjaman_alat/core/services/kategori_service.dart';
 import 'package:aplikasi_peminjaman_alat/core/services/supabase_service.dart';
 import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
 import 'package:aplikasi_peminjaman_alat/models/kategori_model.dart';
-import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 import 'kategori_card.dart';
 import 'kategori_dialog.dart';

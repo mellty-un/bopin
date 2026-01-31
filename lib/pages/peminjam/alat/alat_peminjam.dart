@@ -1,6 +1,6 @@
 import 'package:aplikasi_peminjaman_alat/core/services/alat_service.dart';
 import 'package:aplikasi_peminjaman_alat/models/alat_model.dart';
-import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/alat/alat_card_peminjam.dart';
 import 'package:flutter/material.dart';
 import 'keranjang_page.dart';

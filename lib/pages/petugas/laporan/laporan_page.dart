@@ -1,4 +1,4 @@
-import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/widgets/laporan_card.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/widgets/laporan_tab.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/widgets/search_field.dart';

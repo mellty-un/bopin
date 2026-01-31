@@ -4,7 +4,7 @@ import 'package:aplikasi_peminjaman_alat/models/alat_model.dart';
 import 'package:flutter/material.dart';
 import 'alat_card.dart';
 import 'alat_dialog.dart';
-import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 
 class AlatPage extends StatefulWidget {
   const AlatPage({super.key});
@@ -19,7 +19,7 @@ class _AlatPageState extends State<AlatPage> {
   final AlatService _alatService = AlatService();
   final KategoriService _kategoriService = KategoriService();
 
-  List<Alat> alatList = []; // Gunakan model Alat langsung
+  List<Alat> alatList = []; 
   List<Alat> filteredAlatList = [];
   List<String> kategoriFilterOptions = ['Semua'];
   String _selectedFilter = 'Semua';
@@ -49,7 +49,6 @@ class _AlatPageState extends State<AlatPage> {
     }
 
     try {
-      // Load alat dan kategori secara parallel
       final results = await Future.wait([
         _alatService.getAllAlat(),
         _kategoriService.getAllKategoriNames(),
@@ -232,28 +231,23 @@ void _filterAlat() {
 
               const SizedBox(height: 25),
 
-              // Loading State
               if (_isLoading && !_isRefreshing)
                 _buildLoadingState()
 
-              // Error State
               else if (_errorMessage != null)
                 _buildErrorState()
 
               else
                 Column(
                   children: [
-                    // Search bar dan tombol tambah
                     _buildSearchAndAddButton(),
 
                     const SizedBox(height: 30),
 
-                    // Header "Daftar Alat" dengan filter
                     _buildHeaderAndFilter(),
 
                     const SizedBox(height: 16),
 
-                    // GridView untuk menampilkan alat cards
                     _buildAlatGrid(),
                   ],
                 ),

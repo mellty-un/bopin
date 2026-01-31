@@ -1,360 +1,513 @@
-import 'package:aplikasi_peminjaman_alat/core/services/supabase_service.dart';
 import 'package:aplikasi_peminjaman_alat/models/riwayat_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RiwayatService {
-  final SupabaseClient _supabase = SupabaseService.client;
+  final SupabaseClient _client = Supabase.instance.client;
 
-  Future<List<Riwayat>> getAllRiwayat() async {
-    try {
-      return await _getAllRiwayatWithSeparateQueries();
-    } catch (e) {
-      print('Error in getAllRiwayat: $e');
-      return await _getAllRiwayatFallback();
-    }
-  }
-
-  Future<List<Riwayat>> _getAllRiwayatWithSeparateQueries() async {
-    try {
-      final pengembalianResponse = await _supabase
-          .from('pengembalian')
-          .select()
-          .order('tgl_dikembalikan', ascending: false);
-
-      if (pengembalianResponse.isEmpty) {
-        return [];
-      }
-
-      final List<Riwayat> riwayatList = [];
-
-      for (var pengembalian in pengembalianResponse) {
-        try {
-          final idPeminjaman = pengembalian['id_peminjaman'] as int?;
-          if (idPeminjaman == null) continue;
-
-          final peminjamanResponse = await _supabase
-              .from('peminjaman')
-              .select('''
-                *,
-                users!peminjaman_id_user_fkey(
-                  id_user,
-                  nama
-                )
-              ''')
-              .eq('id_peminjaman', idPeminjaman)
-              .single();
-
-          if (peminjamanResponse == null) continue;
-          final detailResponse = await _supabase
-              .from('detail_peminjaman')
-              .select('''
-                alat(
-                  id_alat,
-                  nama_alat
-                )
-              ''')
-              .eq('id_peminjaman', idPeminjaman)
-              .limit(1);
-
-          final usersData = peminjamanResponse['users'] as Map<String, dynamic>?;
-          final namaUser = usersData?['nama'] as String?;
-
-          String? namaAlat;
-          if (detailResponse.isNotEmpty) {
-            final detail = detailResponse[0] as Map<String, dynamic>;
-            final alatData = detail['alat'] as Map<String, dynamic>?;
-            namaAlat = alatData?['nama_alat'] as String?;
-          }
-
-          DateTime? parseDate(dynamic dateValue) {
-            if (dateValue == null) return null;
-            if (dateValue is DateTime) return dateValue;
-            if (dateValue is String) {
-              try {
-                return DateTime.parse(dateValue);
-              } catch (e) {
-                try {
-                  return DateTime.parse('${dateValue}T00:00:00');
-                } catch (e2) {
-                  return null;
-                }
-              }
-            }
-            return null;
-          }
-
-          final riwayat = Riwayat(
-            idPengembalian: pengembalian['id_pengembalian'] as int? ?? 0,
-            idPeminjaman: idPeminjaman,
-            tglDikembalikan: parseDate(pengembalian['tgl_dikembalikan']),
-            kondisiPengembalian: pengembalian['kondisi_pengembalian'] as String?,
-            keterlambatanHari: _parseInt(pengembalian['keterlambatan_hari']),
-            catatan: pengembalian['catatan'] as String?,
-            namaUser: namaUser,
-            namaAlat: namaAlat,
-            tglPinjam: parseDate(peminjamanResponse['tgl_pinjam']),
-            tglKembali: parseDate(peminjamanResponse['tgl_kembali']),
-            status: peminjamanResponse['status'] as String?,
-            disetujuiOleh: peminjamanResponse['disetujui_oleh'] as String?,
-          );
-
-          riwayatList.add(riwayat);
-        } catch (e) {
-          print('Error parsing riwayat item: $e');
-          continue;
-        }
-      }
-
-      return riwayatList;
-    } catch (e) {
-      print('Error in _getAllRiwayatWithSeparateQueries: $e');
-      rethrow;
-    }
-  }
-
-  int? _parseInt(dynamic value) {
+  /// =============================
+  /// HELPER FUNCTIONS
+  /// =============================
+  int? _safeParseInt(dynamic value) {
     if (value == null) return null;
     if (value is int) return value;
     if (value is double) return value.toInt();
     if (value is String) {
       try {
-        return int.parse(value);
-      } catch (e) {
+        return int.tryParse(value);
+      } catch (_) {
         return null;
       }
     }
-    if (value is num) return value.toInt();
     return null;
   }
 
-  Future<List<Riwayat>> _getAllRiwayatFallback() async {
-    try {
-      final pengembalianResponse = await _supabase
-          .from('pengembalian')
-          .select()
-          .order('tgl_dikembalikan', ascending: false);
+  String? _safeParseString(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    return value.toString();
+  }
 
-      if (pengembalianResponse.isEmpty) {
+  DateTime? _safeParseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) {
+      try {
+        return DateTime.tryParse(value);
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /// =============================
+  /// GET ALL PEMINJAMAN & PENGEMBALIAN - FIXED
+  /// =============================
+  Future<List<Riwayat>> getAllRiwayat() async {
+    try {
+      print('📋 Fetching riwayat data...');
+
+      final response = await _client
+          .from('peminjaman')
+          .select('''
+            id_peminjaman,
+            tgl_pinjam,
+            tgl_kembali,
+            status,
+            disetujui_oleh,
+            users!peminjaman_id_user_fkey(
+              nama,
+              role
+            ),
+            detail_peminjaman(
+              jumlah_pinjam,
+              alat(
+                nama_alat,
+                id_alat
+              )
+            ),
+            pengembalian(
+              id_pengembalian,
+              tgl_dikembalikan,
+              kondisi_pengembalian,
+              keterlambatan_hari,
+              catatan
+            )
+          ''')
+          .order('tgl_pinjam', ascending: false);
+
+      if (response == null || response is! List) {
+        print('ℹ️ No riwayat found');
         return [];
       }
 
-      final List<Riwayat> riwayatList = [];
+      print('✅ Found ${response.length} riwayat records');
 
-      for (var pengembalian in pengembalianResponse) {
-        final idPeminjaman = pengembalian['id_peminjaman'] as int?;
-        if (idPeminjaman == null) continue;
+      List<Riwayat> result = [];
 
+      for (final item in response) {
         try {
-          final peminjamanResponse = await _supabase
-              .from('peminjaman')
-              .select()
-              .eq('id_peminjaman', idPeminjaman)
-              .single();
+          final dynamic userData = item['users'];
+          final dynamic detailList = item['detail_peminjaman'];
+          final dynamic pengembalianList = item['pengembalian'];
 
-          final idUser = peminjamanResponse['id_user'] as String?;
-          String? namaUser;
-          if (idUser != null) {
-            final userResponse = await _supabase
-                .from('users')
-                .select('nama')
-                .eq('id_user', idUser)
-                .single();
-            namaUser = userResponse['nama'] as String?;
+          // DEBUG: Print data untuk troubleshooting
+          print('Processing peminjaman ID: ${item['id_peminjaman']}');
+          print('Status: ${item['status']}');
+          print('Pengembalian data: $pengembalianList');
+
+          // Get user info
+          String userName = 'Unknown';
+          if (userData is Map<String, dynamic>) {
+            userName = _safeParseString(userData['nama']) ?? 'Unknown';
           }
 
-          String? namaAlat;
-          final detailResponse = await _supabase
-              .from('detail_peminjaman')
-              .select('id_alat')
-              .eq('id_peminjaman', idPeminjaman)
-              .limit(1);
-
-          if (detailResponse.isNotEmpty) {
-            final detail = detailResponse[0] as Map<String, dynamic>;
-            final idAlat = detail['id_alat'] as int?;
-            if (idAlat != null) {
-              final alatResponse = await _supabase
-                  .from('alat')
-                  .select('nama_alat')
-                  .eq('id_alat', idAlat)
-                  .single();
-              namaAlat = alatResponse['nama_alat'] as String?;
-            }
-          }
-
-          DateTime? parseDate(dynamic dateValue) {
-            if (dateValue == null) return null;
-            if (dateValue is String) {
-              try {
-                return DateTime.parse(dateValue);
-              } catch (e) {
-                try {
-                  return DateTime.parse('${dateValue}T00:00:00');
-                } catch (e2) {
-                  return null;
+          // Get alat names
+          List<String> namaAlatList = [];
+          int totalJumlahPinjam = 0;
+          
+          if (detailList is List && detailList.isNotEmpty) {
+            for (final detail in detailList) {
+              if (detail is Map<String, dynamic>) {
+                final alatData = detail['alat'];
+                if (alatData is Map<String, dynamic>) {
+                  final namaAlat = _safeParseString(alatData['nama_alat']) ?? 'Unknown';
+                  final jumlah = _safeParseInt(detail['jumlah_pinjam']) ?? 1;
+                  totalJumlahPinjam += jumlah;
+                  
+                  if (jumlah > 1) {
+                    namaAlatList.add('$namaAlat (${jumlah}x)');
+                  } else {
+                    namaAlatList.add(namaAlat);
+                  }
                 }
               }
             }
-            return null;
           }
 
-          final riwayat = Riwayat(
-            idPengembalian: pengembalian['id_pengembalian'] as int? ?? 0,
-            idPeminjaman: idPeminjaman,
-            tglDikembalikan: parseDate(pengembalian['tgl_dikembalikan']),
-            kondisiPengembalian: pengembalian['kondisi_pengembalian'] as String?,
-            keterlambatanHari: _parseInt(pengembalian['keterlambatan_hari']),
-            catatan: pengembalian['catatan'] as String?,
-            namaUser: namaUser,
-            namaAlat: namaAlat,
-            tglPinjam: parseDate(peminjamanResponse['tgl_pinjam']),
-            tglKembali: parseDate(peminjamanResponse['tgl_kembali']),
-            status: peminjamanResponse['status'] as String?,
-            disetujuiOleh: peminjamanResponse['disetujui_oleh'] as String?,
-          );
+          String namaAlat = namaAlatList.isNotEmpty 
+              ? namaAlatList.join(', ')
+              : 'Tidak ada alat';
 
-          riwayatList.add(riwayat);
+          // Get pengembalian data
+          int? idPengembalian;
+          String? kondisiPengembalian;
+          int keterlambatanHari = 0;
+          String catatan = '';
+          DateTime? tglDikembalikan;
+
+          if (pengembalianList is List && pengembalianList.isNotEmpty) {
+            final pengembalian = pengembalianList[0];
+            if (pengembalian is Map<String, dynamic>) {
+              idPengembalian = _safeParseInt(pengembalian['id_pengembalian']);
+              kondisiPengembalian = _safeParseString(pengembalian['kondisi_pengembalian']);
+              keterlambatanHari = _safeParseInt(pengembalian['keterlambatan_hari']) ?? 0;
+              catatan = _safeParseString(pengembalian['catatan']) ?? '';
+              tglDikembalikan = _safeParseDate(pengembalian['tgl_dikembalikan']);
+              
+              print('  Found pengembalian ID: $idPengembalian');
+            }
+          } else {
+            print('  No pengembalian data for peminjaman ID: ${item['id_peminjaman']}');
+          }
+
+          result.add(Riwayat(
+            idPeminjaman: _safeParseInt(item['id_peminjaman']),
+            idPengembalian: idPengembalian,
+            namaUser: userName,
+            namaAlat: namaAlat,
+            kondisiPengembalian: kondisiPengembalian,
+            keterlambatanHari: keterlambatanHari,
+            catatan: catatan,
+            tglPinjam: _safeParseDate(item['tgl_pinjam']),
+            tglKembali: _safeParseDate(item['tgl_kembali']),
+            tglDikembalikan: tglDikembalikan,
+            status: _safeParseString(item['status']) ?? 'Unknown',
+            disetujuiOleh: _safeParseString(item['disetujui_oleh']),
+            jumlahPinjam: totalJumlahPinjam > 0 ? totalJumlahPinjam : 1,
+            userRole: userData is Map<String, dynamic> 
+                ? _safeParseString(userData['role']) ?? 'peminjam'
+                : 'peminjam',
+          ));
         } catch (e) {
-          print('Error processing item: $e');
+          print('⚠️ Error parsing item: $e');
+          print('Item data: $item');
           continue;
         }
       }
 
-      return riwayatList;
+      print('✅ Loaded ${result.length} riwayat peminjaman');
+      return result;
+    } on PostgrestException catch (e) {
+      print('❌ PostgrestException: ${e.code} - ${e.message}');
+      throw Exception('Gagal memuat riwayat: ${e.message}');
     } catch (e) {
-      print('Error in fallback getAllRiwayat: $e');
-      throw Exception('Gagal mengambil data riwayat: ${e.toString()}');
+      print('❌ Error in getAllRiwayat: $e');
+      throw Exception('Gagal memuat riwayat');
     }
   }
 
+  /// =============================
+  /// GET PENGEMBALIAN BY ID - FIXED (untuk edit)
+  /// =============================
+  Future<Map<String, dynamic>> getPengembalianById(int idPengembalian) async {
+    try {
+      if (idPengembalian <= 0) {
+        throw Exception('ID pengembalian tidak valid');
+      }
+
+      print('📋 Fetching pengembalian detail ID: $idPengembalian');
+
+      final response = await _client
+          .from('pengembalian')
+          .select('''
+            id_pengembalian,
+            tgl_dikembalikan,
+            kondisi_pengembalian,
+            keterlambatan_hari,
+            catatan,
+            peminjaman!inner(
+              id_peminjaman,
+              users!inner(nama),
+              detail_peminjaman!inner(
+                alat!inner(nama_alat)
+              )
+            )
+          ''')
+          .eq('id_pengembalian', idPengembalian)
+          .single();
+
+      final dynamic peminjamanData = response['peminjaman'];
+      if (peminjamanData == null) {
+        throw Exception('Data peminjaman tidak ditemukan');
+      }
+
+      final dynamic userData = peminjamanData['users'];
+      final dynamic detailList = peminjamanData['detail_peminjaman'];
+
+      // Get alat name
+      String namaAlat = 'Tidak ada alat';
+      if (detailList is List && detailList.isNotEmpty) {
+        final detail = detailList[0];
+        if (detail is Map<String, dynamic>) {
+          final alatData = detail['alat'];
+          if (alatData is Map<String, dynamic>) {
+            namaAlat = _safeParseString(alatData['nama_alat']) ?? 'Tidak ada alat';
+          }
+        }
+      }
+
+      return {
+        'id_pengembalian': _safeParseInt(response['id_pengembalian']),
+        'id_peminjaman': _safeParseInt(peminjamanData['id_peminjaman']),
+        'nama_user': userData is Map<String, dynamic> 
+            ? _safeParseString(userData['nama']) ?? 'Unknown'
+            : 'Unknown',
+        'nama_alat': namaAlat,
+        'kondisi_pengembalian': _safeParseString(response['kondisi_pengembalian']) ?? 'Baik',
+        'catatan': _safeParseString(response['catatan']) ?? '',
+        'tgl_dikembalikan': _safeParseDate(response['tgl_dikembalikan']),
+        'keterlambatan_hari': _safeParseInt(response['keterlambatan_hari']) ?? 0,
+      };
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST116') {
+        throw Exception('Data pengembalian tidak ditemukan');
+      }
+      throw Exception('Gagal mengambil detail: ${e.message}');
+    } catch (e) {
+      print('❌ Error in getPengembalianById: $e');
+      throw Exception('Gagal mengambil detail pengembalian');
+    }
+  }
+
+  /// =============================
+  /// UPDATE PENGEMBALIAN - FIXED (menerima int?)
+  /// =============================
   Future<void> updatePengembalian({
-    required int idPengembalian,
+    required int? idPengembalian,
     required String kondisiPengembalian,
-    required String catatan,
+    String? catatan,
     DateTime? tglDikembalikan,
     int? keterlambatanHari,
   }) async {
     try {
+      // VALIDASI
+      if (idPengembalian == null) {
+        throw Exception('ID pengembalian tidak ditemukan');
+      }
+      
+      if (idPengembalian <= 0) {
+        throw Exception('ID pengembalian tidak valid: $idPengembalian');
+      }
+
+      final validKondisi = ['Baik', 'Rusak', 'Hilang'];
+      if (!validKondisi.contains(kondisiPengembalian)) {
+        throw Exception('Kondisi tidak valid. Pilih: Baik, Rusak, atau Hilang');
+      }
+
+      print('🔄 Updating pengembalian ID: $idPengembalian');
+
+      // Prepare update data
       final updateData = <String, dynamic>{
         'kondisi_pengembalian': kondisiPengembalian,
-        'catatan': catatan,
+        'updated_at': DateTime.now().toIso8601String(),
       };
+
+      if (catatan != null) {
+        updateData['catatan'] = catatan;
+      }
 
       if (tglDikembalikan != null) {
         updateData['tgl_dikembalikan'] = tglDikembalikan.toIso8601String().split('T')[0];
       }
 
       if (keterlambatanHari != null) {
-        updateData['keterlambatan_hari'] = keterlambatanHari; // TIDAK perlu as String
+        updateData['keterlambatan_hari'] = keterlambatanHari;
       }
 
-      await _supabase
+      // Update data
+      await _client
           .from('pengembalian')
           .update(updateData)
           .eq('id_pengembalian', idPengembalian);
+
+      print('✅ Pengembalian updated successfully');
+    } on PostgrestException catch (e) {
+      print('❌ PostgrestException: ${e.code} - ${e.message}');
+      
+      if (e.code == '42501') {
+        throw Exception('Akses ditolak. Hanya admin/petugas yang bisa mengubah data');
+      }
+      
+      if (e.code == 'PGRST116') {
+        throw Exception('Data pengembalian tidak ditemukan');
+      }
+      
+      if (e.code == '23505') {
+        throw Exception('Data sudah ada di sistem');
+      }
+      
+      throw Exception('Gagal update: ${e.message}');
     } catch (e) {
-      throw Exception('Gagal mengupdate pengembalian: $e');
+      print('❌ Error in updatePengembalian: $e');
+      throw Exception('Terjadi kesalahan saat update');
     }
   }
 
-  Future<void> deletePengembalian(int idPengembalian) async {
+  /// =============================
+  /// DELETE PENGEMBALIAN - FIXED (menerima int?)
+  /// =============================
+  Future<void> deletePengembalian(int? idPengembalian) async {
     try {
-      await _supabase
+      // VALIDASI
+      if (idPengembalian == null) {
+        throw Exception('ID pengembalian tidak ditemukan');
+      }
+      
+      if (idPengembalian <= 0) {
+        throw Exception('ID pengembalian tidak valid: $idPengembalian');
+      }
+
+      print('🗑️ Deleting pengembalian ID: $idPengembalian');
+
+      // Hapus pengembalian
+      await _client
           .from('pengembalian')
           .delete()
           .eq('id_pengembalian', idPengembalian);
+
+      print('✅ Pengembalian deleted successfully');
+    } on PostgrestException catch (e) {
+      print('❌ PostgrestException: ${e.code} - ${e.message}');
+      
+      if (e.code == '42501') {
+        throw Exception('Akses ditolak. Hanya admin/petugas yang bisa menghapus data');
+      }
+      
+      if (e.code == '23503') {
+        throw Exception('Tidak bisa menghapus: Data masih memiliki relasi dengan tabel lain');
+      }
+      
+      if (e.code == 'PGRST116') {
+        throw Exception('Data pengembalian tidak ditemukan');
+      }
+      
+      throw Exception('Gagal menghapus: ${e.message}');
     } catch (e) {
-      throw Exception('Gagal menghapus pengembalian: $e');
+      print('❌ Error in deletePengembalian: $e');
+      throw Exception('Terjadi kesalahan saat menghapus');
     }
   }
 
-  Future<Riwayat> getPengembalianById(int id) async {
+  /// =============================
+  /// CREATE PENGEMBALIAN BARU (tambah data pengembalian)
+  /// =============================
+  Future<void> createPengembalian({
+    required int idPeminjaman,
+    required String kondisiPengembalian,
+    DateTime? tglDikembalikan,
+    int keterlambatanHari = 0,
+    String? catatan,
+  }) async {
     try {
-      final pengembalianResponse = await _supabase
+      // Validasi
+      final validKondisi = ['Baik', 'Rusak', 'Hilang'];
+      if (!validKondisi.contains(kondisiPengembalian)) {
+        throw Exception('Kondisi tidak valid. Pilih: Baik, Rusak, atau Hilang');
+      }
+
+      if (idPeminjaman <= 0) {
+        throw Exception('ID peminjaman tidak valid');
+      }
+
+      print('➕ Creating pengembalian for peminjaman ID: $idPeminjaman');
+
+      // Prepare data
+      final pengembalianData = <String, dynamic>{
+        'id_peminjaman': idPeminjaman,
+        'kondisi_pengembalian': kondisiPengembalian,
+        'keterlambatan_hari': keterlambatanHari,
+        'tgl_dikembalikan': tglDikembalikan?.toIso8601String().split('T')[0] ?? 
+            DateTime.now().toIso8601String().split('T')[0],
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      if (catatan != null && catatan.isNotEmpty) {
+        pengembalianData['catatan'] = catatan;
+      }
+
+      // Insert data
+      await _client
           .from('pengembalian')
-          .select()
-          .eq('id_pengembalian', id)
-          .single();
+          .insert(pengembalianData);
 
-      final idPeminjaman = pengembalianResponse['id_peminjaman'] as int?;
-      if (idPeminjaman == null) {
-        throw Exception('Data peminjaman tidak ditemukan');
-      }
-
-      final peminjamanResponse = await _supabase
+      // Update status peminjaman menjadi "Dikembalikan"
+      await _client
           .from('peminjaman')
-          .select()
-          .eq('id_peminjaman', idPeminjaman)
-          .single();
+          .update({'status': 'Dikembalikan'})
+          .eq('id_peminjaman', idPeminjaman);
 
-      final idUser = peminjamanResponse['id_user'] as String?;
-      String? namaUser;
-      if (idUser != null) {
-        final userResponse = await _supabase
-            .from('users')
-            .select('nama')
-            .eq('id_user', idUser)
-            .single();
-        namaUser = userResponse['nama'] as String?;
+      print('✅ Pengembalian created successfully');
+    } on PostgrestException catch (e) {
+      print('❌ PostgrestException: ${e.code} - ${e.message}');
+      
+      if (e.code == '23505') {
+        throw Exception('Pengembalian untuk peminjaman ini sudah ada');
+      }
+      
+      if (e.code == '23503') {
+        throw Exception('Peminjaman tidak ditemukan');
+      }
+      
+      throw Exception('Gagal membuat pengembalian: ${e.message}');
+    } catch (e) {
+      print('❌ Error in createPengembalian: $e');
+      throw Exception('Terjadi kesalahan saat membuat pengembalian');
+    }
+  }
+
+  /// =============================
+  /// GET PEMINJAMAN BY STATUS
+  /// =============================
+  Future<List<Riwayat>> getPeminjamanByStatus(String status) async {
+    try {
+      final response = await _client
+          .from('peminjaman')
+          .select('''
+            id_peminjaman,
+            tgl_pinjam,
+            tgl_kembali,
+            status,
+            users!peminjaman_id_user_fkey(nama),
+            detail_peminjaman(
+              alat(nama_alat)
+            )
+          ''')
+          .eq('status', status)
+          .order('tgl_pinjam', ascending: false);
+
+      if (response == null || response is! List) {
+        return [];
       }
 
-      String? namaAlat;
-      final detailResponse = await _supabase
-          .from('detail_peminjaman')
-          .select('id_alat')
-          .eq('id_peminjaman', idPeminjaman)
-          .limit(1);
+      List<Riwayat> result = [];
 
-      if (detailResponse.isNotEmpty) {
-        final detail = detailResponse[0] as Map<String, dynamic>;
-        final idAlat = detail['id_alat'] as int?;
-        if (idAlat != null) {
-          final alatResponse = await _supabase
-              .from('alat')
-              .select('nama_alat')
-              .eq('id_alat', idAlat)
-              .single();
-          namaAlat = alatResponse['nama_alat'] as String?;
-        }
-      }
+      for (final item in response) {
+        try {
+          final dynamic userData = item['users'];
+          final dynamic detailList = item['detail_peminjaman'];
 
-      // Parse tanggal
-      DateTime? parseDate(dynamic dateValue) {
-        if (dateValue == null) return null;
-        if (dateValue is String) {
-          try {
-            return DateTime.parse(dateValue);
-          } catch (e) {
-            try {
-              return DateTime.parse('${dateValue}T00:00:00');
-            } catch (e2) {
-              return null;
+          String namaAlat = 'Tidak ada alat';
+          if (detailList is List && detailList.isNotEmpty) {
+            final detail = detailList[0];
+            if (detail is Map<String, dynamic>) {
+              final alatData = detail['alat'];
+              if (alatData is Map<String, dynamic>) {
+                namaAlat = _safeParseString(alatData['nama_alat']) ?? 'Tidak ada alat';
+              }
             }
           }
+
+          result.add(Riwayat(
+            idPeminjaman: _safeParseInt(item['id_peminjaman']),
+            namaUser: userData is Map<String, dynamic> 
+                ? _safeParseString(userData['nama']) ?? 'Unknown'
+                : 'Unknown',
+            namaAlat: namaAlat,
+            status: _safeParseString(item['status']) ?? status,
+            tglPinjam: _safeParseDate(item['tgl_pinjam']),
+            tglKembali: _safeParseDate(item['tgl_kembali']),
+          ));
+        } catch (e) {
+          print('⚠️ Error parsing status item: $e');
+          continue;
         }
-        return null;
       }
 
-      return Riwayat(
-        idPengembalian: pengembalianResponse['id_pengembalian'] as int? ?? 0,
-        idPeminjaman: idPeminjaman,
-        tglDikembalikan: parseDate(pengembalianResponse['tgl_dikembalikan']),
-        kondisiPengembalian: pengembalianResponse['kondisi_pengembalian'] as String?,
-        keterlambatanHari: _parseInt(pengembalianResponse['keterlambatan_hari']),
-        catatan: pengembalianResponse['catatan'] as String?,
-        namaUser: namaUser,
-        namaAlat: namaAlat,
-        tglPinjam: parseDate(peminjamanResponse['tgl_pinjam']),
-        tglKembali: parseDate(peminjamanResponse['tgl_kembali']),
-        status: peminjamanResponse['status'] as String?,
-        disetujuiOleh: peminjamanResponse['disetujui_oleh'] as String?,
-      );
+      return result;
     } catch (e) {
-      throw Exception('Gagal mengambil pengembalian: $e');
+      print('❌ Error in getPeminjamanByStatus: $e');
+      throw Exception('Gagal memuat peminjaman berdasarkan status');
     }
-  }
-
-  List<String> getKondisiOptions() {
-    return ['Baik', 'Rusak', 'Hilang'];
   }
 }

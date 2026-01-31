@@ -11,7 +11,6 @@ class PeminjamDashboard extends StatefulWidget {
 class _PeminjamDashboardState extends State<PeminjamDashboard> {
 @override
   Widget build(BuildContext context) {
-    // Get screen width for responsive card sizing
     final screenWidth = MediaQuery.of(context).size.width;
     final cardWidth = (screenWidth - 40 - 16) / 2; 
     final cardHeight = 133;

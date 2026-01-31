@@ -34,8 +34,9 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
     if (widget.isEdit && widget.pengguna != null) {
       _nameController.text = widget.pengguna!.nama;
       _selectedRole = widget.pengguna!.roleFormatted;
-      
-      if (widget.pengguna!.email != null && widget.pengguna!.email!.isNotEmpty) {
+
+      if (widget.pengguna!.email != null &&
+          widget.pengguna!.email!.isNotEmpty) {
         _emailController.text = widget.pengguna!.email!;
       } else {
         _loadUserEmail();
@@ -45,11 +46,12 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
 
   Future<void> _loadUserEmail() async {
     if (widget.pengguna == null) return;
-    
+
     setState(() => _loadingEmail = true);
-    
+
     try {
-      final detail = await PenggunaService.getPenggunaDetail(widget.pengguna!.idUser);
+      final detail =
+          await PenggunaService.getPenggunaDetail(widget.pengguna!.idUser);
       if (mounted) {
         setState(() {
           _emailController.text = detail['email'] ?? '';
@@ -74,7 +76,6 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
     super.dispose();
   }
 
-  // ==================== FIXED _savePengguna FUNCTION ====================
   Future<void> _savePengguna() async {
     setState(() => _errorMessage = null);
 
@@ -89,91 +90,86 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
 
     try {
       if (widget.isEdit) {
-        final email = _emailController.text.trim().toLowerCase();
-        final role = _selectedRole!.toLowerCase();
-        
+        // UPDATE
         await PenggunaService.updatePengguna(
           idUser: widget.pengguna!.idUser,
           nama: _nameController.text.trim(),
-          role: role,
-          email: email,
+          role: _selectedRole!.toLowerCase(),
+          email: _emailController.text.trim().toLowerCase(),
         );
-        
-        print('✅ Update berhasil: ${widget.pengguna!.idUser}');
+
+        print('✅ Update berhasil');
       } else {
+        // CREATE
         final email = _emailController.text.trim().toLowerCase();
         final password = _passwordController.text.trim();
         final nama = _nameController.text.trim();
         final role = _selectedRole!.toLowerCase();
-        
-        if (email.isEmpty) {
-          throw Exception('Email tidak boleh kosong');
-        }
-        
-        if (password.isEmpty) {
-          throw Exception('Password tidak boleh kosong');
-        }
-        
-        if (nama.isEmpty) {
-          throw Exception('Nama tidak boleh kosong');
-        }
-        
+
+        // Validasi tambahan
+        if (email.isEmpty) throw Exception('Email tidak boleh kosong');
+        if (password.isEmpty) throw Exception('Password tidak boleh kosong');
+        if (nama.isEmpty) throw Exception('Nama tidak boleh kosong');
+
         if (!email.endsWith('@gmail.com')) {
           throw Exception('Email harus menggunakan @gmail.com');
         }
-        
+
         final localPart = email.split('@')[0];
         if (localPart.length < 6) {
-          throw Exception('Email minimal 6 karakter sebelum @\nContoh: ${localPart}123456@gmail.com');
+          throw Exception(
+              'Email minimal 6 karakter sebelum @\nContoh: nama123456@gmail.com');
         }
-        
-        print('🔄 Membuat pengguna: $email, role: $role');
-        
+
+        print('🔄 Membuat pengguna: $email');
+
         final userId = await PenggunaService.createPengguna(
           email: email,
           password: password,
           nama: nama,
           role: role,
         );
-        
-        print('✅ Create berhasil, user ID: $userId');
+
+        print('✅ Create berhasil: $userId');
       }
 
       if (!mounted) return;
-      
+
       await Future.delayed(const Duration(milliseconds: 300));
-      
+
       Navigator.of(context).pop(true);
-      
     } catch (e) {
       if (!mounted) return;
-      
+
       print('❌ Error di _savePengguna: $e');
-      
+
       String errorMessage = e.toString();
-      
+
       if (errorMessage.startsWith('Exception: ')) {
         errorMessage = errorMessage.substring(11);
       }
-      
-      if (errorMessage.contains('already registered') || 
-          errorMessage.contains('Email sudah terdaftar')) {
+
+      // Cleanup error messages
+      if (errorMessage.contains('already registered') ||
+          errorMessage.contains('sudah terdaftar')) {
         errorMessage = 'Email sudah terdaftar di sistem';
       }
-      
+
       if (errorMessage.contains('Password minimal')) {
-        errorMessage = 'Password minimal 6 angka';
+        errorMessage = 'Password minimal 6 karakter';
       }
-      
+
       if (errorMessage.contains('minimal 6 karakter')) {
-        errorMessage = 'Email minimal 6 karakter sebelum @\nContoh: nama123456@gmail.com';
+        errorMessage =
+            'Email minimal 6 karakter sebelum @\nContoh: nama123456@gmail.com';
       }
-      
+
       setState(() {
         _isLoading = false;
         _errorMessage = errorMessage;
       });
-      
+
+      // Auto clear error after 5 seconds
       Future.delayed(const Duration(seconds: 5), () {
         if (mounted && _errorMessage == errorMessage) {
           setState(() => _errorMessage = null);
@@ -182,37 +178,36 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
     }
   }
 
-  // ==================== VALIDASI EMAIL YANG FIXED ====================
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Email wajib diisi';
     }
-    
+
     final email = value.trim();
-    
+
     if (!email.endsWith('@gmail.com')) {
       return 'Email harus menggunakan @gmail.com';
     }
-    
+
     final parts = email.split('@');
     if (parts.length != 2) return 'Format email tidak valid';
-    
+
     final localPart = parts[0];
-    final domain = parts[1];
-    
+
     if (localPart.length < 6) {
-      return 'Email terlalu pendek.\nMinimal 6 karakter sebelum @\nSaran: ${localPart}123456@gmail.com';
+      return 'Email terlalu pendek.\nMinimal 6 karakter sebelum @';
     }
-    
+
     if (email.contains(' ')) {
       return 'Email tidak boleh mengandung spasi';
     }
-    
-    final emailPattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+
+    final emailPattern =
+        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (!emailPattern.hasMatch(email)) {
       return 'Format email tidak valid';
     }
-    
+
     return null;
   }
 
@@ -241,9 +236,9 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
 
+                // Error Message
                 if (_errorMessage != null)
                   Container(
                     width: double.infinity,
@@ -271,7 +266,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: '',
+                    hintText: 'Masukkan nama lengkap',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -312,7 +307,8 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                       _selectedRole = newValue;
                     });
                   },
-                  validator: (value) => value == null ? 'Role harus dipilih' : null,
+                  validator: (value) =>
+                      value == null ? 'Role harus dipilih' : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -342,7 +338,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                         enabled: true,
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          hintText: '',
+                          hintText: 'contoh@gmail.com',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -353,7 +349,8 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                         ),
                         validator: _validateEmail,
                       ),
-                
+
+                // Password (hanya untuk create)
                 if (!widget.isEdit) ...[
                   const SizedBox(height: 16),
                   const Text(
@@ -371,7 +368,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                       FilteringTextInputFormatter.digitsOnly,
                     ],
                     decoration: InputDecoration(
-                      hintText: '',
+                      hintText: 'Minimal 6 angka',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -382,8 +379,8 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                       prefixIcon: const Icon(Icons.lock, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword 
-                              ? Icons.visibility_off 
+                          _obscurePassword
+                              ? Icons.visibility_off
                               : Icons.visibility,
                         ),
                         onPressed: () {
@@ -395,7 +392,6 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                     ),
                     validator: (value) => Validator.password(value),
                   ),
-                  
                 ],
 
                 const SizedBox(height: 24),

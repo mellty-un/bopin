@@ -1,9 +1,10 @@
 import 'package:aplikasi_peminjaman_alat/core/services/pengguna_service.dart';
+import 'package:aplikasi_peminjaman_alat/core/services/supabase_service.dart';
 import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
 import 'package:aplikasi_peminjaman_alat/models/pengguna_model.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/kelola%20pengguna/pengguna_dialog.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/delete_confirmation_diaalog.dart';
-import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 import 'pengguna_card.dart';
 
@@ -25,6 +26,10 @@ class _KelolaPenggunaPageState extends State<KelolaPenggunaPage> {
   @override
   void initState() {
     super.initState();
+    
+    
+    
+    _debugCurrentUser(); // Debug info
     _loadPengguna();
     _searchController.addListener(_filterPengguna);
   }
@@ -35,7 +40,24 @@ class _KelolaPenggunaPageState extends State<KelolaPenggunaPage> {
     super.dispose();
   }
 
+  // TAMBAHKAN FUNGSI DEBUG
+  void _debugCurrentUser() {
+    print('=== KELOLA PENGGUNA DEBUG ===');
+    final user = SupabaseService.client.auth.currentUser;
+    if (user != null) {
+      print('User: ${user.email}');
+      print('ID: ${user.id}');
+      print('Metadata: ${user.userMetadata}');
+      print('Role: ${user.userMetadata?['role']}');
+    } else {
+      print('No user logged in');
+    }
+    print('=============================');
+  }
+
   Future<void> _loadPengguna() async {
+    if (!mounted) return;
+    
     setState(() {
       isLoading = true;
     });
@@ -57,6 +79,7 @@ class _KelolaPenggunaPageState extends State<KelolaPenggunaPage> {
           SnackBar(
             content: Text('Gagal memuat pengguna: ${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5), // Tampilkan lebih lama
           ),
         );
       }

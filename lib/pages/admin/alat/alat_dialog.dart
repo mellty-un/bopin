@@ -41,13 +41,12 @@ class _AlatDialogState extends State<AlatDialog> {
   bool _isUploading = false;
   String? _errorMessage;
   
-  // PERUBAHAN PENTING: Pisahkan state gambar
-  File? _selectedImageFile;        // File baru dari device (belum diupload)
-  String? _existingImageName;      // Nama file yang sudah ada di bucket (dari database)
-  String? _newImageName;           // Nama file baru setelah diupload
+  File? _selectedImageFile;       
+  String? _existingImageName;      
+  String? _newImageName;           
   
   final ImagePicker _picker = ImagePicker();
-  Uint8List? _webImageBytes;       // Untuk menyimpan bytes gambar di web
+  Uint8List? _webImageBytes;      
 
   @override
   void initState() {
@@ -58,19 +57,15 @@ class _AlatDialogState extends State<AlatDialog> {
 
   void _initializeData() {
     if (widget.isEdit && widget.alat != null) {
-      // Data dari database
       _namaController.text = widget.alat!['nama_alat'] ?? widget.alat!['nama'] ?? '';
       _stokTotalController.text = widget.alat!['stok_total']?.toString() ?? '0';
       _stokTersediaController.text = widget.alat!['stok_tersedia']?.toString() ?? '0';
       
-      // Kondisi
       final kondisi = widget.alat!['kondisi'] ?? 'Baik';
       _selectedKondisi = _kondisiOptions.contains(kondisi) ? kondisi : 'Baik';
       
-      // Kategori
       _selectedKategoriId = widget.alat!['id_kategori'];
       
-      // Gambar yang sudah ada (nama file dari database)
       _existingImageName = widget.alat!['gambar'];
     } else {
       _selectedKondisi = 'Baik';
@@ -91,7 +86,6 @@ class _AlatDialogState extends State<AlatDialog> {
     }
   }
 
-  // Helper method untuk kategori dropdown items
   List<DropdownMenuItem<int>> _buildKategoriItems() {
     return _kategoriOptions.map<DropdownMenuItem<int>>((e) {
       final kategoriId = e['id_kategori'] as int? ?? 0;
@@ -103,7 +97,6 @@ class _AlatDialogState extends State<AlatDialog> {
     }).toList();
   }
 
-  // Helper method untuk kondisi dropdown items
   List<DropdownMenuItem<String>> _buildKondisiItems() {
     return _kondisiOptions.map<DropdownMenuItem<String>>((e) {
       return DropdownMenuItem<String>(
@@ -113,7 +106,6 @@ class _AlatDialogState extends State<AlatDialog> {
     }).toList();
   }
 
-  // Pilih gambar dari device
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -134,14 +126,13 @@ class _AlatDialogState extends State<AlatDialog> {
           final bytes = await image.readAsBytes();
           setState(() {
             _webImageBytes = bytes;
-            _selectedImageFile = null; // Tidak digunakan di web
+            _selectedImageFile = null; 
             _isUploading = false;
           });
         } else {
-          // UNTUK MOBILE: Gunakan File
           setState(() {
             _selectedImageFile = File(image.path);
-            _webImageBytes = null; // Tidak digunakan di mobile
+            _webImageBytes = null; 
             _isUploading = false;
           });
         }
@@ -188,12 +179,10 @@ Future<void> _saveAlat() async {
       setState(() => _isUploading = true);
 
       if (kIsWeb && _webImageBytes != null) {
-        // ✅ WEB → UPLOAD BYTES
         finalImageName = await _alatService.uploadImageBytes(
           _webImageBytes!,
         );
       } else if (!kIsWeb && _selectedImageFile != null) {
-        // ✅ MOBILE → UPLOAD FILE
         finalImageName = await _alatService.uploadImage(
           _selectedImageFile!,
         );
@@ -262,28 +251,23 @@ Future<void> _saveAlat() async {
     return null;
   }
 
-  // Widget untuk menampilkan gambar preview
   Widget _buildImagePreview() {
     if (_isUploading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // 1. JIKA ADA GAMBAR BARU YANG DIPILIH (dari device)
     if (_selectedImageFile != null) {
-      // UNTUK MOBILE
       return Image.file(
         _selectedImageFile!,
         fit: BoxFit.cover,
       );
     } else if (_webImageBytes != null) {
-      // UNTUK WEB
       return Image.memory(
         _webImageBytes!,
         fit: BoxFit.cover,
       );
     }
     
-    // 2. JIKA ADA GAMBAR YANG SUDAH ADA (dari database/bucket)
     else if (_existingImageName != null && _existingImageName!.isNotEmpty) {
       final imageUrl = _alatService.getImageUrl(_existingImageName);
       return Image.network(
@@ -300,7 +284,6 @@ Future<void> _saveAlat() async {
       );
     }
     
-    // 3. JIKA TIDAK ADA GAMBAR
     else {
       return _buildImagePlaceholder();
     }

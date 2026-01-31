@@ -3,7 +3,7 @@ import 'package:aplikasi_peminjaman_alat/models/denda_model.dart';
 import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/denda/denda_card.dart';
 import 'package:aplikasi_peminjaman_alat/pages/admin/denda/denda_dialog.dart';
-import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 
 class KelolaDendaPage extends StatefulWidget {

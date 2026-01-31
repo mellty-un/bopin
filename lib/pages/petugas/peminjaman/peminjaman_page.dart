@@ -1,4 +1,4 @@
-import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/peminjaman/pemijaman_card.dart';
 import 'package:flutter/material.dart';
 

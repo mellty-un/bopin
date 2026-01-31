@@ -1,5 +1,5 @@
 import 'package:aplikasi_peminjaman_alat/core/theme/app_color.dart';
-import 'package:aplikasi_peminjaman_alat/pages/admin/widgets/side_bar.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 
 class PetugasDashboard extends StatefulWidget {

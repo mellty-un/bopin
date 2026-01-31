@@ -13,7 +13,6 @@ class PenggunaModel {
     this.createdAt,
   });
 
-  // From JSON (dari Supabase)
   factory PenggunaModel.fromJson(Map<String, dynamic> json) {
     return PenggunaModel(
       idUser: json['id_user'] as String,
@@ -26,7 +25,6 @@ class PenggunaModel {
     );
   }
 
-  // To JSON (untuk kirim ke Supabase)
   Map<String, dynamic> toJson() {
     return {
       'id_user': idUser,
@@ -36,7 +34,6 @@ class PenggunaModel {
     };
   }
 
-  // Copy with (untuk update data)
   PenggunaModel copyWith({
     String? idUser,
     String? nama,
@@ -53,12 +50,10 @@ class PenggunaModel {
     );
   }
 
-  // Getter untuk role yang sudah diformat
   String get roleFormatted {
     return role[0].toUpperCase() + role.substring(1).toLowerCase();
   }
 
-  // Getter untuk initial
   String get initial {
     return nama.isNotEmpty ? nama[0].toUpperCase() : '?';
   }

@@ -46,13 +46,11 @@ class _AlatCardPeminjamState extends State<AlatCardPeminjam> {
   @override
   Widget build(BuildContext context) {
     final alat = widget.alat;
-    final jumlahDiKeranjang = widget.jumlahDiKeranjang;
     final stokTersedia = alat.stokTersedia ?? 0;
     final isStokHabis = stokTersedia == 0;
-    final isInCart = jumlahDiKeranjang > 0;
-    
+
     return GestureDetector(
-      onTap: isStokHabis ? null : widget.onTap, // Disable jika stok habis
+      onTap: isStokHabis ? null : widget.onTap,
       child: Container(
         width: 220,
         height: 190,
@@ -61,89 +59,118 @@ class _AlatCardPeminjamState extends State<AlatCardPeminjam> {
           color: isStokHabis ? Colors.grey[100] : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isStokHabis 
-                ? Colors.grey[300]! 
-                : isInCart 
-                  ? Colors.green // Ubah jadi hijau jika sudah di keranjang
-                  : const Color(0xFF36536B),
+            color: isStokHabis
+                ? Colors.grey[300]!
+                : const Color(0xFF36536B),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+              spreadRadius: 1,
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// NAMA + KONDISI + STOK + BADGE KERANJANG
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          alat.namaAlat ?? 'Tanpa Nama',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: isStokHabis ? Colors.grey : Colors.black,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(
-                              'Stok: $stokTersedia',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: isStokHabis ? Colors.red : Colors.grey[600],
-                                fontWeight: isStokHabis ? FontWeight.bold : FontWeight.normal,
-                              ),
+              child: Text(
+                alat.namaAlat ?? 'Tanpa Nama',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: isStokHabis ? Colors.grey : Colors.black,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Text(
+                alat.kategori?.namaKategori ?? 'Tidak Ada Kategori',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isStokHabis
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[50],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    children: [
+                      _buildImage(),
+                      if (isStokHabis)
+                        Container(
+                          color: Colors.black54,
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.block,
+                                    color: Colors.white, size: 24),
+                                SizedBox(height: 4),
+                                Text(
+                                  'STOK HABIS',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                            if (isInCart) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.green[50],
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: Colors.green, width: 1),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.shopping_cart_checkout, size: 10, color: Colors.green),
-                                    const SizedBox(width: 2),
-                                    Text(
-                                      '$jumlahDiKeranjang',
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
+                          ),
                         ),
-                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            /// STOK + KONDISI (DI BAWAH GAMBAR)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  /// STOK
+                  Text(
+                    'Stok: $stokTersedia',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isStokHabis
+                          ? Colors.red
+                          : Colors.grey[700],
+                      fontWeight: isStokHabis
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                     ),
                   ),
+                  
+                  /// KONDISI BADGE
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: _getKondisiColor(alat.kondisi ?? 'Tidak Diketahui'),
+                      color: _getKondisiColor(
+                          alat.kondisi ?? 'Tidak Diketahui'),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -158,79 +185,6 @@ class _AlatCardPeminjamState extends State<AlatCardPeminjam> {
                 ],
               ),
             ),
-
-            /// KATEGORI
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-              child: Text(
-                alat.kategori?.namaKategori ?? 'Tidak Ada Kategori',
-                style: TextStyle(
-                  fontSize: 12, 
-                  color: isStokHabis ? Colors.grey[400] : Colors.grey[600]
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-
-            /// GAMBAR + INDIKATOR KERANJANG/STOK HABIS
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: isStokHabis ? Colors.grey[50] : Colors.grey[50],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Stack(
-                    children: [
-                      _buildImage(),
-                      if (isStokHabis)
-                        Container(
-                          color: Colors.black54,
-                          child: const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.block, color: Colors.white, size: 24),
-                                SizedBox(height: 4),
-                                Text(
-                                  'STOK HABIS',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (isInCart)
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.check,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            /// KOSONG - TIDAK ADA KONTROL APAPUN DI BAWAH
-            const SizedBox(height: 10),
           ],
         ),
       ),
@@ -255,18 +209,11 @@ class _AlatCardPeminjamState extends State<AlatCardPeminjam> {
             fit: BoxFit.contain,
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;
-              return Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                      : null,
-                ),
+              return const Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
               );
             },
             errorBuilder: (context, error, stackTrace) {
-              print('Error loading image: $error, URL: $_imageUrl');
               return _buildErrorPlaceholder();
             },
           ),
@@ -284,7 +231,8 @@ class _AlatCardPeminjamState extends State<AlatCardPeminjam> {
           children: [
             Icon(Icons.photo, size: 36, color: Colors.grey),
             SizedBox(height: 6),
-            Text('No Image', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            Text('No Image',
+                style: TextStyle(fontSize: 11, color: Colors.grey)),
           ],
         ),
       ),
@@ -300,7 +248,8 @@ class _AlatCardPeminjamState extends State<AlatCardPeminjam> {
           children: [
             Icon(Icons.broken_image, size: 36, color: Colors.grey),
             SizedBox(height: 6),
-            Text('Failed to load', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            Text('Failed to load',
+                style: TextStyle(fontSize: 11, color: Colors.grey)),
           ],
         ),
       ),
