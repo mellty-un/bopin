@@ -5,6 +5,7 @@ import 'package:aplikasi_peminjaman_alat/models/pengembalian_model.dart';
 import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'pengembalian_card.dart';
 
 class PengembalianPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class PengembalianPage extends StatefulWidget {
   @override
   State<PengembalianPage> createState() => _PengembalianPageState();
 }
+
 
 class _PengembalianPageState extends State<PengembalianPage> {
   final TextEditingController _searchController = TextEditingController();
@@ -40,26 +42,56 @@ class _PengembalianPageState extends State<PengembalianPage> {
     }
   }
 
-  void _updateStatusToSelesai(PengembalianModel model) async {
-    try {
-      await PengembalianService.prosesPengembalian(
-        idPeminjaman: model.id,
-        dendaKerusakan: model.dendaKerusakan,
-        totalDenda: model.totalDenda,
-        alatList: model.alatList,
-      );
+void _updateStatusToSelesai(PengembalianModel model) async {
+  try {
+    // Ambil data peminjaman dari database untuk mendapatkan tgl_kembali
+    final peminjaman = await Supabase.instance.client
+        .from('peminjaman')
+        .select('tgl_kembali')
+        .eq('id_peminjaman', int.parse(model.id))
+        .single();
 
-      setState(() {
-        final index = _data.indexWhere((e) => e.id == model.id);
-        if (index != -1) _data[index] = model.copyWith(status: "Selesai");
-      });
-    } catch (e) {
-      debugPrint('❌ Error updating status: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gagal memproses pengembalian')));
+    // Hitung keterlambatan
+    final tglKembali = DateTime.parse(peminjaman['tgl_kembali']);
+    final tglDikembalikan = DateTime.now();
+    final keterlambatan = tglDikembalikan.difference(tglKembali).inDays;
+    final keterlambatanHari = keterlambatan > 0 ? keterlambatan : 0;
+
+    // Hitung denda keterlambatan (misal: Rp 5000 per hari)
+    final dendaKeterlambatan = keterlambatanHari * 5000;
+
+    await PengembalianService.prosesPengembalian(
+      idPeminjaman: model.id,
+      kondisiPengembalian: 'Baik',
+      keterlambatanHari: keterlambatanHari,
+      dendaKerusakan: model.dendaKerusakan ?? 0,
+      dendaKeterlambatan: dendaKeterlambatan,
+      dendaKehilangan: 0,
+      catatan: null,
+      alatList: model.alatList,
+    );
+
+    setState(() {
+      final index = _data.indexWhere((e) => e.id == model.id);
+      if (index != -1) {
+        _data[index] = model.copyWith(status: "Dikembalikan");
+      }
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Pengembalian berhasil diproses')),
+      );
+    }
+  } catch (e) {
+    debugPrint('❌ Error updating status: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memproses pengembalian: $e')),
+      );
     }
   }
+}
 
   List<PengembalianModel> getFilteredData() {
     List<PengembalianModel> filtered = _data;

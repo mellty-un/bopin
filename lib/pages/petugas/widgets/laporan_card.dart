@@ -1,10 +1,9 @@
-import 'package:aplikasi_peminjaman_alat/pages/petugas/laporan/laporan_page.dart';
+import 'package:aplikasi_peminjaman_alat/models/laporan_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-
 class LaporanCard extends StatelessWidget {
-  final Laporan laporan;
+  final LaporanModel laporan;
 
   const LaporanCard({super.key, required this.laporan});
 
@@ -23,12 +22,36 @@ class LaporanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            laporan.nama,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                laporan.nama,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: laporan.status == 'Dikembalikan'
+                      ? const Color(0xFFD4EDDA)
+                      : const Color(0xFFD1ECF1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  laporan.status,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: laporan.status == 'Dikembalikan'
+                        ? const Color(0xFF155724)
+                        : const Color(0xFF0C5460),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 10),
@@ -38,6 +61,8 @@ class LaporanCard extends StatelessWidget {
             children: [
               _dateText('Mulai', dateFormat.format(laporan.mulai)),
               _dateText('Kembali', dateFormat.format(laporan.kembali)),
+              if (laporan.dikembalikan != null)
+                _dateText('Dikembalikan', dateFormat.format(laporan.dikembalikan!)),
             ],
           ),
 
@@ -66,13 +91,20 @@ class LaporanCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        alat.nama,
+                        alat.namaAlat,
                         style: const TextStyle(fontSize: 13),
                       ),
                     ),
-                    Text(
-                      alat.jumlah.toString(),
-                      style: const TextStyle(fontSize: 13),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F3F5),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${alat.jumlah} pcs',
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ),
                   ],
                 ),
@@ -85,7 +117,9 @@ class LaporanCard extends StatelessWidget {
           /// BUTTON PRINT
           Center(
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                // TODO: Implement print functionality
+              },
               icon: const Icon(Icons.print, size: 16),
               label: const Text('Print Report'),
               style: ElevatedButton.styleFrom(

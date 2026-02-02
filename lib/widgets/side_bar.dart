@@ -169,15 +169,15 @@ class _SideBarState extends State<SideBar> {
 
   // ================= PETUGAS =================
   List<Widget> _petugasMenu() => [
-        _menuItem(title: "Dashboars", page: "DashboardPetugas", onTap: () => _go(const PetugasDashboard())),
-                _menuItem(title: "Peminjama", page: "PeminjamanPetugas", onTap: () => _go(const PeminjamanPage())),
-        _menuItem(title: "Pengembalian", page: "PengembalianPetugas", onTap: () => _go(const PengembalianPage())),
-        _menuItem(title: "Laporan", page: "LaporanPetugas", onTap: () => _go(const LaporanPage())),
+        _menuItem(title: "Dashboars", page: "Dashboars", onTap: () => _go(const PetugasDashboard())),
+                _menuItem(title: "Peminjama", page: "Peminjama", onTap: () => _go(const PeminjamanPage())),
+        _menuItem(title: "Pengembalian", page: "Pengembalian", onTap: () => _go(const PengembalianPage())),
+        _menuItem(title: "Laporan", page: "Laporan", onTap: () => _go(const LaporanPage())),
       ];
 
   // ================= PEMINJAM =================
   List<Widget> _peminjamMenu() => [
-        _menuItem(title: "Dashboard", page: "PeminjamDashboard", onTap: () => _go(const PeminjamDashboard())),
+        _menuItem(title: "Dashboard", page: "Dashboard", onTap: () => _go(const PeminjamDashboard())),
         _menuItem(title: "Alat Peminjam", page: "Alat Peminjam", onTap: () => _go(const AlatPeminjamPage())),
         _menuItem(title: "Pengajuan Peminjam", page: "Pengajuan Peminjam", onTap: () => _go(const PengajuanPage())),
         _menuItem(title: "Pengembalian Peminjam", page: "Pengembalian Peminjam", onTap: () => _go(const PengembalianPage())),

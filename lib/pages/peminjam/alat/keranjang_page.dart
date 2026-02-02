@@ -1,3 +1,4 @@
+import 'package:aplikasi_peminjaman_alat/core/services/pemijaman_user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:aplikasi_peminjaman_alat/models/alat_model.dart';
 import 'package:aplikasi_peminjaman_alat/core/services/alat_service.dart';
@@ -20,8 +21,10 @@ class KeranjangPage extends StatefulWidget {
 
 class _KeranjangPageState extends State<KeranjangPage> {
   final AlatService _alatService = AlatService();
+  final PeminjamanUserService _peminjamanUserService = PeminjamanUserService();
   DateTime? _tanggalPinjam;
   DateTime? _tanggalKembali;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -324,42 +327,7 @@ class _KeranjangPageState extends State<KeranjangPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: ElevatedButton(
-        onPressed: () {
-          if (_tanggalPinjam == null || _tanggalKembali == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Pilih tanggal pinjam dan kembali terlebih dahulu'),
-                backgroundColor: Colors.red,
-              ),
-            );
-            return;
-          }
-
-          if (_tanggalKembali!.isBefore(_tanggalPinjam!) ||
-              _tanggalKembali!.isAtSameMomentAs(_tanggalPinjam!)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Tanggal kembali harus setelah tanggal pinjam'),
-                backgroundColor: Colors.red,
-              ),
-            );
-            return;
-          }
-
-          // Simulasi ajukan peminjaman
-          widget.keranjangAlat.clear();
-          widget.jumlahPesanan.clear();
-          widget.onUpdate();
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Peminjaman berhasil diajukan'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          
-          Navigator.pop(context);
-        },
+        onPressed: _isSubmitting ? null : _handleAjukanPeminjaman,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF36536B),
           minimumSize: const Size(double.infinity, 50),
@@ -368,16 +336,104 @@ class _KeranjangPageState extends State<KeranjangPage> {
           ),
           elevation: 0,
         ),
-        child: const Text(
-          'Ajukan Peminjaman',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
+        child: _isSubmitting
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Text(
+                'Ajukan Peminjaman',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
+  }
+
+  Future<void> _handleAjukanPeminjaman() async {
+    // Validasi tanggal
+    if (_tanggalPinjam == null || _tanggalKembali == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih tanggal pinjam dan kembali terlebih dahulu'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_tanggalKembali!.isBefore(_tanggalPinjam!) ||
+        _tanggalKembali!.isAtSameMomentAs(_tanggalPinjam!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tanggal kembali harus setelah tanggal pinjam'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // Panggil service untuk ajukan peminjaman
+      final success = await _peminjamanUserService.ajukanPeminjaman(
+        tanggalPinjam: _tanggalPinjam!,
+        tanggalKembali: _tanggalKembali!,
+        alatDanJumlah: widget.jumlahPesanan,
+      );
+
+      if (success) {
+        // Kosongkan keranjang
+        widget.keranjangAlat.clear();
+        widget.jumlahPesanan.clear();
+        widget.onUpdate();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Peminjaman berhasil diajukan'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          Navigator.pop(context);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal mengajukan peminjaman'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   Future<void> _selectTanggalPinjam(BuildContext context) async {

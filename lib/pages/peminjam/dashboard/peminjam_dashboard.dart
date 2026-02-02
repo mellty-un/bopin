@@ -1,5 +1,6 @@
 import 'package:aplikasi_peminjaman_alat/core/theme/app_color.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PeminjamDashboard extends StatefulWidget {
   const PeminjamDashboard({super.key});
@@ -9,10 +10,25 @@ class PeminjamDashboard extends StatefulWidget {
 }
 
 class _PeminjamDashboardState extends State<PeminjamDashboard> {
-@override
+  String namaUser = 'Pengguna';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  void _loadUser() {
+    final user = Supabase.instance.client.auth.currentUser;
+    setState(() {
+      namaUser = user?.userMetadata?['nama'] ?? 'Pengguna';
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth - 40 - 16) / 2; 
+    final cardWidth = (screenWidth - 40 - 16) / 2;
     final cardHeight = 133;
 
     return Scaffold(
@@ -23,39 +39,25 @@ class _PeminjamDashboardState extends State<PeminjamDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.menu, size: 28, color: Colors.black87),
-                    const SizedBox(width: 16),
-                    const Text(
-                      'Dashboard',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+              // ===== HEADER =====
+              Row(
+                children: const [
+                  Icon(Icons.menu, size: 28, color: Colors.black87),
+                  SizedBox(width: 16),
+                  Text(
+                    'Dashboard',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
-                    const Spacer(),
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: AppColor.primary,
-                      child: const Text(
-                        'MT',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-                         
 
+              const SizedBox(height: 16),
 
+              // ===== WELCOME CARD =====
               Container(
                 width: double.infinity,
                 height: 135,
@@ -75,9 +77,9 @@ class _PeminjamDashboardState extends State<PeminjamDashboard> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const Text(
-                      'Melati Tiara',
-                      style: TextStyle(
+                    Text(
+                      namaUser, // ✅ NAMA USER LOGIN
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -85,7 +87,7 @@ class _PeminjamDashboardState extends State<PeminjamDashboard> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'kelola sistem peminjaman dengan mudah\ndan efisien',
+                      'Kelola sistem peminjaman dengan mudah\ndan efisien',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
                         fontSize: 12,
@@ -110,41 +112,40 @@ class _PeminjamDashboardState extends State<PeminjamDashboard> {
                   _buildStatCard(
                     icon: Icons.groups_outlined,
                     value: '60',
-                    label: 'Total Pengguna',
+                    label: 'Total Alat',
                   ),
                   _buildStatCard(
                     icon: Icons.inventory_2_outlined,
                     value: '10',
-                    label: 'Total Alat',
+                    label: 'Menunggu',
                   ),
                   _buildStatCard(
                     icon: Icons.category_outlined,
                     value: '4',
-                    label: 'Total Kategori',
+                    label: 'Selesai',
                   ),
                   _buildStatCard(
                     icon: Icons.access_time,
                     value: '12',
-                    label: 'Total Peminjam',
+                    label: 'Pengembalian',
                   ),
                 ],
               ),
 
               const SizedBox(height: 30),
 
-              // ===== RIWAYAT TERBARU =====
+              // ===== RIWAYAT =====
               const Text(
                 'Riwayat Terbaru',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 12),
 
               _historyItem(
-                title: 'Peminjam 1',
+                title: 'Peminjaman Alat',
                 subtitle: 'Berhasil',
                 qty: '2 Alat',
                 date: '12/01/2026',
@@ -153,13 +154,7 @@ class _PeminjamDashboardState extends State<PeminjamDashboard> {
                 title: 'Pengembalian',
                 subtitle: 'Berhasil',
                 qty: '2 Alat',
-                date: '12/01/2026',
-              ),
-              _historyItem(
-                title: 'Menambah Alat',
-                subtitle: 'Berhasil',
-                qty: '2 Alat',
-                date: '12/01/2026',
+                date: '13/01/2026',
               ),
             ],
           ),
@@ -168,189 +163,119 @@ class _PeminjamDashboardState extends State<PeminjamDashboard> {
     );
   }
 
- Widget _buildStatCard({
-  required IconData icon,
-  required String value,
-  required String label,
-}) {
-  return Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEBEFF2),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: const Color(0xFF2A3440),
-        width: 2,
+  // ===== STAT CARD =====
+  Widget _buildStatCard({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEBEFF2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2A3440), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.15),
-          blurRadius: 10,
-          spreadRadius: 1,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ICON (kiri atas)
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFb1bdc7),
-            borderRadius: BorderRadius.circular(6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFb1bdc7),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 22),
           ),
-          child: Icon(
-            icon,
-            size: 22,
-            color: Colors.black,
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        // AREA TENGAH
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // VALUE → CENTER
-              Center(
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
+          const Spacer(),
+          Center(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
               ),
-
-              const SizedBox(height: 4),
-
-              // LABEL → KIRI
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
- // History Item Widget
-Widget _historyItem({
-  required String title,
-  required String subtitle,
-  required String qty,
-  required String date,
-}) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 10),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 4,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        // ✅ ICON CHECK CIRCLE
-        Container(
-          width: 36,
-          height: 36,
-          decoration: const BoxDecoration(
-            color: Colors.green,
-            shape: BoxShape.circle,
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.check,
-              color: Colors.white,
-              size: 20,
             ),
           ),
-        ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-        const SizedBox(width: 12),
-
-        // TITLE & SUBTITLE
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: Colors.black87,
+  // ===== HISTORY ITEM =====
+  Widget _historyItem({
+    required String title,
+    required String subtitle,
+    required String qty,
+    required String date,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            backgroundColor: Colors.green,
+            child: Icon(Icons.check, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
+                const SizedBox(height: 4),
+                Text(
                   subtitle,
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.green.shade700,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(qty, style: const TextStyle(fontSize: 12)),
+              Text(
+                date,
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
               ),
             ],
           ),
-        ),
-
-        // QTY & DATE
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              qty,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              date,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 }

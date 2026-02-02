@@ -1,29 +1,110 @@
+import 'package:aplikasi_peminjaman_alat/core/services/pemijaman_user_service.dart';
 import 'package:flutter/material.dart';
 
 class PengajuanCard extends StatefulWidget {
   final Map<String, dynamic> data;
+  final VoidCallback onRefresh;
 
-  const PengajuanCard({super.key, required this.data});
+  const PengajuanCard({
+    super.key,
+    required this.data,
+    required this.onRefresh,
+  });
 
   @override
   State<PengajuanCard> createState() => _PengajuanCardState();
 }
 
 class _PengajuanCardState extends State<PengajuanCard> {
+  final PeminjamanUserService _peminjamanUserService = PeminjamanUserService();
   bool expand = false;
+  bool _isSubmitting = false;
 
   Color statusColor(String s) {
     switch (s) {
       case 'Menunggu':
         return Colors.amber;
-      case 'Dipinjam':
+      case 'Disetujui':
         return Colors.green;
-      case 'Selesai':
+      case 'Dikembalikan':
         return Colors.teal;
       case 'Ditolak':
         return Colors.red;
       default:
         return Colors.grey;
+    }
+  }
+
+  Future<void> _handleAjukanPengembalian() async {
+    final idPeminjaman = widget.data['id_peminjaman'] as int;
+
+    // Konfirmasi
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi'),
+        content: const Text('Apakah Anda yakin ingin mengajukan pengembalian?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xff36536B),
+            ),
+            child: const Text(
+              'Ya, Ajukan',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final success = await _peminjamanUserService.ajukanPengembalian(idPeminjaman);
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pengembalian berhasil diajukan'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          widget.onRefresh();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal mengajukan pengembalian'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -106,9 +187,12 @@ class _PengajuanCardState extends State<PengajuanCard> {
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(width: 16),
-                Text(
-                  alat.keys.join(', '),
-                  style: const TextStyle(fontSize: 12),
+                Expanded(
+                  child: Text(
+                    alat.keys.join(', '),
+                    style: const TextStyle(fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -124,13 +208,16 @@ class _PengajuanCardState extends State<PengajuanCard> {
                 child: Column(
                   children: [
                     ...alat.entries.map(
-                      (e) => Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(e.key, style: const TextStyle(fontSize: 12)),
-                          Text('${e.value}',
-                              style: const TextStyle(fontSize: 12)),
-                        ],
+                      (e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(e.key, style: const TextStyle(fontSize: 12)),
+                            Text('${e.value}',
+                                style: const TextStyle(fontSize: 12)),
+                          ],
+                        ),
                       ),
                     ),
                     if (kembali != null) ...[
@@ -161,19 +248,31 @@ class _PengajuanCardState extends State<PengajuanCard> {
               ),
             ],
 
-            if (status == 'Dipinjam') ...[
+            if (status == 'Disetujui') ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: _isSubmitting ? null : _handleAjukanPengembalian,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xff36536B),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('Ajukan Pengembalian'),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Ajukan Pengembalian',
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
               ),
             ],

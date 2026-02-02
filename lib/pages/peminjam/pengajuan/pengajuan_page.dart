@@ -1,3 +1,4 @@
+import 'package:aplikasi_peminjaman_alat/core/services/pemijaman_user_service.dart';
 import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 import 'pengajuan_card.dart';
@@ -11,34 +12,50 @@ class PengajuanPage extends StatefulWidget {
 
 class _PengajuanPageState extends State<PengajuanPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final PeminjamanUserService _peminjamanUserService = PeminjamanUserService();
 
   String selectedFilter = 'Semua';
   TextEditingController searchController = TextEditingController();
+  
+  List<Map<String, dynamic>> allPeminjaman = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  final List<Map<String, dynamic>> allPeminjaman = [
-    {
-      'tanggal': '20/01/2026',
-      'status': 'Menunggu',
-      'alat': {'Alat': 2},
-      'tanggal_pengembalian': '25/01/2026',
-    },
-    {
-      'tanggal': '20/01/2026',
-      'status': 'Dipinjam',
-      'alat': {'Alat': 2},
-      'tanggal_pengembalian': '24/01/2026',
-    },
-    {
-      'tanggal': '20/01/2026',
-      'status': 'Selesai',
-      'alat': {'Alat': 2},
-    },
-    {
-      'tanggal': '20/01/2026',
-      'status': 'Ditolak',
-      'alat': {'Alat': 2},
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadPeminjamanData();
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPeminjamanData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data = await _peminjamanUserService.getPeminjamanByUser();
+      setState(() {
+        allPeminjaman = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshData() async {
+    await _loadPeminjamanData();
+  }
 
   List<Map<String, dynamic>> get filteredData {
     var result = allPeminjaman;
@@ -68,49 +85,137 @@ class _PengajuanPageState extends State<PengajuanPage> {
       ),
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// HEADER
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 12 : 24,
-                vertical: 16,
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.menu, size: isSmallScreen ? 28 : 32),
-                    onPressed: () =>
-                        _scaffoldKey.currentState?.openDrawer(),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    "Peminjaman",
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 20 : 24,
-                      fontWeight: FontWeight.bold,
+        child: RefreshIndicator(
+          onRefresh: _refreshData,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// HEADER
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 12 : 24,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.menu, size: isSmallScreen ? 28 : 32),
+                      onPressed: () =>
+                          _scaffoldKey.currentState?.openDrawer(),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Text(
+                      "Peminjaman",
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 20 : 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            _searchBar(),
-            _filterChips(),
+              _searchBar(),
+              _filterChips(),
 
-            /// LIST
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: filteredData.length,
-                itemBuilder: (context, index) {
-                  return PengajuanCard(data: filteredData[index]);
-                },
+              /// LIST
+              Expanded(
+                child: _isLoading
+                    ? _buildLoadingState()
+                    : _errorMessage != null
+                        ? _buildErrorState()
+                        : filteredData.isEmpty
+                            ? _buildEmptyState()
+                            : ListView.builder(
+                                padding: const EdgeInsets.all(16),
+                                itemCount: filteredData.length,
+                                itemBuilder: (context, index) {
+                                  return PengajuanCard(
+                                    data: filteredData[index],
+                                    onRefresh: _refreshData,
+                                  );
+                                },
+                              ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(
+            'Memuat data peminjaman...',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 50, color: Colors.red[400]),
+          const SizedBox(height: 16),
+          Text(
+            'Gagal memuat data',
+            style: TextStyle(fontSize: 16, color: Colors.red[600]),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _errorMessage ?? 'Terjadi kesalahan',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadPeminjamanData,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xff36536B),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text(
+              'Coba Lagi',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Belum ada peminjaman',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -135,7 +240,7 @@ class _PengajuanPageState extends State<PengajuanPage> {
   }
 
   Widget _filterChips() {
-    final filters = ['Semua', 'Menunggu', 'Dipinjam', 'Selesai', 'Ditolak'];
+    final filters = ['Semua', 'Menunggu', 'Disetujui', 'Ditolak', 'Dikembalikan'];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

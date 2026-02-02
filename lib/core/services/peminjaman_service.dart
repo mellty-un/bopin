@@ -1,5 +1,6 @@
 import 'package:aplikasi_peminjaman_alat/models/peminjaman_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/material.dart';
 
 class PeminjamanService {
   static final SupabaseClient _client = Supabase.instance.client;
@@ -16,6 +17,7 @@ class PeminjamanService {
           status,
           detail_peminjaman (
             jumlah_pinjam,
+            id_alat,
             alat (
               nama_alat
             )
@@ -23,9 +25,7 @@ class PeminjamanService {
         ''')
         .order('tgl_pinjam', ascending: false);
 
-    // pastikan response bukan null
     final list = response as List<dynamic>? ?? [];
-
     return list.map<PeminjamanModel>((json) {
       final Map<String, int> alatMap = {};
       final detail = json['detail_peminjaman'] as List? ?? [];
@@ -53,9 +53,85 @@ class PeminjamanService {
     required int idPeminjaman,
     required String status,
   }) async {
-    await _client
-        .from('peminjaman')
-        .update({'status': status})
-        .eq('id_peminjaman', idPeminjaman);
+    try {
+      // Jika disetujui, kurangi stok
+      if (status == 'Disetujui') {
+        await _kurangiStok(idPeminjaman);
+      }
+      
+      await _client
+          .from('peminjaman')
+          .update({'status': status})
+          .eq('id_peminjaman', idPeminjaman);
+    } catch (e) {
+      debugPrint("Gagal update status: $e");
+      rethrow;
+    }
+  }
+
+  // Kurangi stok saat peminjaman disetujui
+  static Future<void> _kurangiStok(int idPeminjaman) async {
+    try {
+      final details = await _client
+          .from('detail_peminjaman')
+          .select('id_alat, jumlah_pinjam')
+          .eq('id_peminjaman', idPeminjaman);
+
+      for (final detail in details) {
+        final idAlat = detail['id_alat'];
+        final jumlah = detail['jumlah_pinjam'];
+
+        final alatData = await _client
+            .from('alat')
+            .select('stok_tersedia')
+            .eq('id_alat', idAlat)
+            .single();
+
+        final stokSekarang = alatData['stok_tersedia'] as int;
+        final stokBaru = stokSekarang - jumlah;
+
+        await _client
+            .from('alat')
+            .update({'stok_tersedia': stokBaru})
+            .eq('id_alat', idAlat);
+      }
+    } catch (e) {
+      debugPrint("Gagal kurangi stok: $e");
+      rethrow;
+    }
+  }
+
+  // Kembalikan stok saat pengembalian
+  static Future<void> restoreStok(int idPeminjaman) async {
+    try {
+      final details = await _client
+          .from('detail_peminjaman')
+          .select('id_alat, jumlah_pinjam')
+          .eq('id_peminjaman', idPeminjaman);
+
+      for (final detail in details) {
+        final idAlat = detail['id_alat'];
+        final jumlah = detail['jumlah_pinjam'];
+
+        final alatData = await _client
+            .from('alat')
+            .select('stok_tersedia')
+            .eq('id_alat', idAlat)
+            .single();
+
+        final stokSekarang = alatData['stok_tersedia'] as int;
+        final stokBaru = stokSekarang + jumlah;
+
+        await _client
+            .from('alat')
+            .update({'stok_tersedia': stokBaru})
+            .eq('id_alat', idAlat);
+      }
+      
+      debugPrint("Berhasil restore stok untuk peminjaman $idPeminjaman");
+    } catch (e) {
+      debugPrint("Gagal restore stok: $e");
+      rethrow;
+    }
   }
 }

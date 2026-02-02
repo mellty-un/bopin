@@ -1,7 +1,9 @@
+import 'package:aplikasi_peminjaman_alat/core/services/laporan_service.dart';
 import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/widgets/laporan_card.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/widgets/laporan_tab.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/widgets/search_field.dart';
+import 'package:aplikasi_peminjaman_alat/models/laporan_model.dart';
 import 'package:flutter/material.dart';
 
 class LaporanPage extends StatefulWidget {
@@ -20,35 +22,44 @@ class _LaporanPageState extends State<LaporanPage> {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  final List<Laporan> listLaporan = [
-    Laporan(
-      nama: 'Chella',
-      mulai: DateTime(2026, 1, 20),
-      kembali: DateTime(2026, 1, 24),
-      items: [
-        Alat(nama: 'Panci', jumlah: 1),
-        Alat(nama: 'Pisau', jumlah: 1),
-      ],
-    ),
-    Laporan(
-      nama: 'Viona',
-      mulai: DateTime(2026, 1, 20),
-      kembali: DateTime(2026, 1, 24),
-      items: [
-        Alat(nama: 'Panci', jumlah: 1),
-        Alat(nama: 'Pisau', jumlah: 1),
-      ],
-    ),
-  ];
+  List<LaporanModel> listLaporan = [];
+  bool isLoading = false;
 
-  List<Laporan> get filteredLaporan {
+  @override
+  void initState() {
+    super.initState();
+    fetchLaporanData();
+  }
+
+  Future<void> fetchLaporanData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final data = await LaporanService.fetchLaporan(
+        filter: tabs[selectedTab],
+      );
+      setState(() {
+        listLaporan = data;
+      });
+    } catch (e) {
+      debugPrint('Error fetching laporan: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  List<LaporanModel> get filteredLaporan {
     if (searchQuery.isEmpty) return listLaporan;
 
     return listLaporan.where((laporan) {
       final q = searchQuery.toLowerCase();
       if (laporan.nama.toLowerCase().contains(q)) return true;
       return laporan.items.any(
-        (alat) => alat.nama.toLowerCase().contains(q),
+        (alat) => alat.namaAlat.toLowerCase().contains(q),
       );
     }).toList();
   }
@@ -68,7 +79,6 @@ class _LaporanPageState extends State<LaporanPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               // ================= HEADER (JANGAN DIUBAH) =================
               Padding(
                 padding: const EdgeInsets.only(top: 16, bottom: 10),
@@ -116,7 +126,10 @@ class _LaporanPageState extends State<LaporanPage> {
                       text: tabs[index],
                       active: selectedTab == index,
                       onTap: () {
-                        setState(() => selectedTab = index);
+                        setState(() {
+                          selectedTab = index;
+                        });
+                        fetchLaporanData();
                       },
                     );
                   }),
@@ -125,16 +138,26 @@ class _LaporanPageState extends State<LaporanPage> {
 
               const SizedBox(height: 12),
 
+              /// LOADING INDICATOR
+              if (isLoading)
+                const Center(
+                  child: CircularProgressIndicator(),
+                ),
+
               /// LIST LAPORAN
               Expanded(
-                child: ListView.builder(
-                  itemCount: filteredLaporan.length,
-                  itemBuilder: (context, index) {
-                    return LaporanCard(
-                      laporan: filteredLaporan[index],
-                    );
-                  },
-                ),
+                child: listLaporan.isEmpty && !isLoading
+                    ? const Center(
+                        child: Text('Tidak ada data laporan'),
+                      )
+                    : ListView.builder(
+                        itemCount: filteredLaporan.length,
+                        itemBuilder: (context, index) {
+                          return LaporanCard(
+                            laporan: filteredLaporan[index],
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -142,28 +165,4 @@ class _LaporanPageState extends State<LaporanPage> {
       ),
     );
   }
-}
-
-class Laporan {
-  final String nama;
-  final DateTime mulai;
-  final DateTime kembali;
-  final List<Alat> items;
-  
-  Laporan({
-    required this.nama,
-    required this.mulai,
-    required this.kembali,
-    required this.items,
-  });
-}
-
-class Alat {
-  final String nama;
-  final int jumlah;
-  
-  Alat({
-    required this.nama,
-    required this.jumlah,
-  });
 }
