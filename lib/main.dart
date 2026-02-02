@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
         title: 'boPin',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const SplashScreen(),
+        home: const PetugasDashboard(),
       ),
     );
   }

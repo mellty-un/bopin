@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:aplikasi_peminjaman_alat/models/detail_peminjaman_model.dart';
 
 class PengembalianDetailDialog extends StatelessWidget {
   final String id;
   final String nama;
   final String tanggalDiajukan;
   final String status;
-  final List<Map<String, dynamic>> alatList;
+  final List<DetailPeminjaman> alatList; 
   final String tanggalPeminjaman;
   final String tanggalPengembalian;
   final String tanggalDikembalikan;
@@ -32,63 +33,44 @@ class PengembalianDetailDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 25),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Nama & Status
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   nama,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: status == "Selesai" 
-                      ? Colors.green
-                      : const Color(0xFF3A587A),
+                    color: status == "Selesai" ? Colors.green : const Color(0xFF3A587A),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     status,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 4),
             Text(
               "Diajukan $tanggalDiajukan",
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
-
             const SizedBox(height: 20),
 
-            const Text(
-              "Alat:",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-
+            // Alat
+            const Text("Alat:", style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
-
-            // Daftar Alat dengan kondisi di kiri
             Column(
               children: alatList.map((alat) {
                 return Column(
@@ -96,20 +78,21 @@ class PengembalianDetailDialog extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(alat['nama']),
-                        Text("${alat['jumlah']}"),
+                        Text(alat.namaAlat),
+                        Text("${alat.jumlah}"),
                       ],
                     ),
-                    // Kondisi di kiri
                     Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Text(
-                          alat['kondisi'],
+                          alat.kondisi,
                           style: TextStyle(
-                            color: alat['kondisi'] == "Rusak" 
-                              ? const Color(0xFFDC2626) // Merah
-                              : const Color(0xFF4CAF50), // Hijau
+                            color: alat.kondisi == "Rusak"
+                                ? const Color(0xFFDC2626)
+                                : alat.kondisi == "Hilang"
+                                    ? const Color(0xFFFFA500)
+                                    : const Color(0xFF4CAF50),
                             fontSize: 12,
                           ),
                         ),
@@ -123,16 +106,10 @@ class PengembalianDetailDialog extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-
-            // Garis pembatas
-            Container(
-              height: 1,
-              color: Colors.grey[300],
-            ),
-
+            Container(height: 1, color: Colors.grey[300]),
             const SizedBox(height: 20),
 
-            // Tabel tanggal dengan icon kalender
+            // Tanggal
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -142,112 +119,71 @@ class PengembalianDetailDialog extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  // Header tabel
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: const [
                       Expanded(
                         child: Text(
                           "Tanggal Peminjaman",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF6B7280),
-                          ),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
                           textAlign: TextAlign.center,
                         ),
                       ),
                       Expanded(
                         child: Text(
                           "Tanggal Pengembalian",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF6B7280),
-                          ),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
                           textAlign: TextAlign.center,
                         ),
                       ),
                       Expanded(
                         child: Text(
                           "Tanggal Dikembalikan",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF6B7280),
-                          ),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
                           textAlign: TextAlign.center,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  
-                  // Isi tabel dengan icon kalender
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Tanggal Peminjaman dengan icon
                       Expanded(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
+                            Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
                               tanggalPeminjaman,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
                       ),
-                      
-                      // Tanggal Pengembalian dengan icon
                       Expanded(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
+                            Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
                               tanggalPengembalian,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
                       ),
-                      
-                      // Tanggal Dikembalikan dengan icon
                       Expanded(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
+                            Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
                               tanggalDikembalikan,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -259,82 +195,42 @@ class PengembalianDetailDialog extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-
-            // Garis pembatas
-            Container(
-              height: 1,
-              color: Colors.grey[300],
-            ),
-
+            Container(height: 1, color: Colors.grey[300]),
             const SizedBox(height: 20),
 
-            // Rincian denda
+            // Denda
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: const [
-                Text(
-                  "Denda Terlambat",
-                  style: TextStyle(fontSize: 14),
-                ),
-                Text(
-                  "0",
-                  style: TextStyle(fontSize: 14),
-                ),
+                Text("Denda Terlambat", style: TextStyle(fontSize: 14)),
+                Text("0", style: TextStyle(fontSize: 14)),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Denda Kerusakan",
-                  style: TextStyle(fontSize: 14),
-                ),
-                Text(
-                  dendaKerusakan.toString(),
-                  style: const TextStyle(fontSize: 14),
-                ),
+                const Text("Denda Kerusakan", style: TextStyle(fontSize: 14)),
+                Text(dendaKerusakan.toString(), style: const TextStyle(fontSize: 14)),
               ],
             ),
-            
             const SizedBox(height: 8),
-            
-            // Garis pembatas
-            Container(
-              height: 1,
-              color: Colors.grey[300],
-            ),
-            
+            Container(height: 1, color: Colors.grey[300]),
             const SizedBox(height: 8),
-            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Total",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold
-                  ),
-                ),
-                Text(
-                  totalDenda.toString(),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold
-                  ),
-                ),
+                const Text("Total", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(totalDenda.toString(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
-
             const SizedBox(height: 20),
 
-            // Hanya tampilkan tombol jika status bukan "Selesai"
+            // Tombol Proses / Ditolak
             if (status != "Selesai") ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Ditolak
                   Expanded(
                     child: GestureDetector(
                       onTap: () => Navigator.pop(context),
@@ -345,28 +241,16 @@ class PengembalianDetailDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Center(
-                          child: Text(
-                            "Ditolak",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          child: Text("Ditolak", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
-                  // Proses
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        // Tutup dialog detail
                         Navigator.pop(context);
-                        // Tampilkan popup sukses
                         _showSuccessDialog(context, nama, onProsesSuccess);
                       },
                       child: Container(
@@ -376,14 +260,7 @@ class PengembalianDetailDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Center(
-                          child: Text(
-                            "Proses",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          child: Text("Proses", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ),
@@ -391,7 +268,6 @@ class PengembalianDetailDialog extends StatelessWidget {
                 ],
               )
             ] else ...[
-              // Tampilkan pesan jika sudah selesai
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
@@ -399,14 +275,7 @@ class PengembalianDetailDialog extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Center(
-                  child: Text(
-                    "Pengembalian telah diproses",
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  child: Text("Pengembalian telah diproses", style: TextStyle(color: Colors.green, fontSize: 14, fontWeight: FontWeight.w500)),
                 ),
               ),
             ],
@@ -416,7 +285,6 @@ class PengembalianDetailDialog extends StatelessWidget {
     );
   }
 
-  // Fungsi untuk menampilkan dialog sukses
   void _showSuccessDialog(BuildContext context, String namaPeminjam, VoidCallback? callback) {
     showDialog(
       context: context,
@@ -426,11 +294,10 @@ class PengembalianDetailDialog extends StatelessWidget {
         Future.delayed(const Duration(seconds: 2), () {
           if (ctx.mounted) {
             Navigator.pop(ctx);
-            // Panggil callback untuk update status
             callback?.call();
           }
         });
-        
+
         return Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -441,10 +308,7 @@ class PengembalianDetailDialog extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.only(top: 50),
                 padding: const EdgeInsets.fromLTRB(32, 70, 32, 32),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -452,12 +316,7 @@ class PengembalianDetailDialog extends StatelessWidget {
                     Text(
                       "Pengembalian $namaPeminjam berhasil Diproses",
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1F2937),
-                        letterSpacing: -0.5,
-                      ),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF1F2937), letterSpacing: -0.5),
                     ),
                   ],
                 ),
@@ -472,11 +331,7 @@ class PengembalianDetailDialog extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 8),
                     boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
+                      BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 15, offset: const Offset(0, 5)),
                     ],
                   ),
                   child: const Icon(Icons.check, color: Colors.white, size: 50),

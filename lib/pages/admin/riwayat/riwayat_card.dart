@@ -122,7 +122,7 @@ class _RiwayatCardState extends State<RiwayatCard> {
       case 'menunggu':
         return const Color(0xFF7C3AED);
       case 'disetujui':
-        return const Color(0xFF1D4ED8);
+        return Colors.green;
       case 'ditolak':
         return const Color(0xFFDC2626);
       default:

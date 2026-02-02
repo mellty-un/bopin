@@ -1,6 +1,9 @@
-import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
-import 'package:aplikasi_peminjaman_alat/pages/petugas/peminjaman/pemijaman_card.dart';
+import 'package:aplikasi_peminjaman_alat/core/services/peminjaman_service.dart';
+import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
 import 'package:flutter/material.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
+import 'package:aplikasi_peminjaman_alat/models/peminjaman_model.dart';
+import 'pemijaman_card.dart';
 
 class PeminjamanPage extends StatefulWidget {
   const PeminjamanPage({super.key});
@@ -10,42 +13,77 @@ class PeminjamanPage extends StatefulWidget {
 }
 
 class _PeminjamanPageState extends State<PeminjamanPage> {
-  String filter = 'Semua';
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
 
-  final List<Map<String, dynamic>> data = [
-    {
-      'nama': 'Chella',
-      'tanggal': '20/01/2025',
-      'kembali': '24/01/2026',
-      'status': 'Pengajuan',
-      'alat': {'Panci': 1, 'Pisau': 1},
-    },
-    {
-      'nama': 'Viona',
-      'tanggal': '20/01/2026',
-      'status': 'Disetujui',
-      'alat': {},
-    },
-    {
-      'nama': 'Asel',
-      'tanggal': '20/01/2026',
-      'status': 'Disetujui',
-      'alat': {},
-    },
-    {'nama': 'Egi', 'tanggal': '20/01/2026', 'status': 'Ditolak', 'alat': {}},
-  ];
+  String filter = 'Semua';
+  bool isLoading = true;
+
+  List<PeminjamanModel> peminjamanList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPeminjaman();
+  }
+
+  Future<void> _loadPeminjaman() async {
+    try {
+      final result = await PeminjamanService.fetchPeminjaman();
+      setState(() {
+        peminjamanList = result;
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Gagal load peminjaman: $e');
+      setState(() => isLoading = false);
+    }
+  }
+
+  List<PeminjamanModel> get filteredData {
+    final keyword = _searchController.text.toLowerCase();
+
+    return peminjamanList.where((item) {
+      final cocokStatus = filter == 'Semua' || item.status == filter;
+
+      final cocokSearch = item.nama.toLowerCase().contains(keyword);
+
+      return cocokStatus && cocokSearch;
+    }).toList();
+  }
+
+  Future<void> _updateStatus(int id, String status) async {
+    try {
+      // update ke Supabase
+      await PeminjamanService.updateStatus(idPeminjaman: id, status: status);
+
+      // tampilkan popup sukses
+      if (mounted) {
+        SuccessPopup.show(
+          context,
+          status == 'Disetujui'
+              ? 'Peminjaman berhasil disetujui'
+              : 'Peminjaman berhasil ditolak',
+        );
+      }
+
+      // reload data
+      await _loadPeminjaman();
+    } catch (e) {
+      debugPrint('Gagal update status: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Gagal mengubah status')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
     final screenHeight = MediaQuery.of(context).size.height;
-    final isSmallScreen = screenWidth < 600;
-
-    final filteredData = filter == 'Semua'
-        ? data
-        : data.where((e) => e['status'] == filter).toList();
 
     return Scaffold(
       key: _scaffoldKey,
@@ -62,35 +100,36 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 12.0 : 24.0,
-            vertical: isSmallScreen ? 8.0 : 16.0,
+            horizontal: isSmallScreen ? 12 : 24,
+            vertical: isSmallScreen ? 8 : 16,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              /// HEADER
               Padding(
                 padding: const EdgeInsets.only(top: 16, bottom: 10),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.menu, size: isSmallScreen ? 28.0 : 32.0),
-                      onPressed: () {
-                        _scaffoldKey.currentState?.openDrawer();
-                      },
+                      icon: Icon(Icons.menu, size: isSmallScreen ? 28 : 32),
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                     ),
-                    SizedBox(width: isSmallScreen ? 12.0 : 16.0),
+                    SizedBox(width: isSmallScreen ? 12 : 16),
                     Text(
                       "Peminjaman",
                       style: TextStyle(
-                        fontSize: isSmallScreen ? 20.0 : 24.0,
+                        fontSize: isSmallScreen ? 20 : 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 20),
 
+              /// SEARCH
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -108,16 +147,16 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
                           hintText: "Search",
                           border: InputBorder.none,
                         ),
-                        onChanged: (value) {
-                          setState(() {});
-                        },
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 20),
 
+              /// FILTER
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -125,32 +164,24 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
                     'Daftar Peminjaman',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: isSmallScreen ? 13.0 : 14.0,
+                      fontSize: isSmallScreen ? 13 : 14,
                     ),
                   ),
-
-                  const SizedBox(height: 20),
-
                   Container(
-                    height: isSmallScreen ? 26.0 : 28.0,
+                    height: isSmallScreen ? 26 : 28,
                     padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 6.0 : 8.0,
+                      horizontal: isSmallScreen ? 6 : 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Color(0xFF36536B)),
+                      border: Border.all(color: const Color(0xFF36536B)),
                     ),
                     child: DropdownButton<String>(
                       value: filter,
                       underline: const SizedBox(),
                       icon: Icon(
                         Icons.keyboard_arrow_down,
-                        size: isSmallScreen ? 16.0 : 18.0,
-                      ),
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 12.0 : 14.0,
-                        color: Colors.black87,
+                        size: isSmallScreen ? 16 : 18,
                       ),
                       items: const [
                         DropdownMenuItem(value: 'Semua', child: Text('Semua')),
@@ -172,55 +203,50 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
                         ),
                       ],
                       onChanged: (value) {
-                        setState(() {
-                          filter = value!;
-                        });
+                        setState(() => filter = value!);
                       },
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: isSmallScreen ? 8.0 : 12.0),
 
+              SizedBox(height: isSmallScreen ? 8 : 12),
+
+              /// LIST
               Expanded(
-                child: filteredData.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.inventory_2_outlined,
-                              size: isSmallScreen ? 50.0 : 60.0,
-                              color: Colors.grey,
-                            ),
-                            SizedBox(height: isSmallScreen ? 12.0 : 16.0),
-                            Text(
-                              'Tidak ada data peminjaman',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: isSmallScreen ? 14.0 : 16.0,
-                              ),
-                            ),
-                          ],
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : filteredData.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Tidak ada data peminjaman',
+                          style: TextStyle(color: Colors.grey),
                         ),
                       )
-                    : ListView.builder(
-                        itemCount: filteredData.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: isSmallScreen ? 8.0 : 12.0,
-                            ),
-                            child: PeminjamanCard(
-                              data: filteredData[index],
-                              onUpdate: (status) {
-                                setState(() {
-                                  filteredData[index]['status'] = status;
-                                });
-                              },
-                            ),
-                          );
-                        },
+                    : RefreshIndicator(
+                        onRefresh: _loadPeminjaman,
+                        child: ListView.builder(
+                          itemCount: filteredData.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom: isSmallScreen ? 8 : 12,
+                              ),
+                              child: PeminjamanCard(
+                                model: filteredData[index],
+                                onUpdate: (newStatus) async {
+                                  // update status di list lokal agar UI langsung berubah
+                                  setState(() {
+                                    filteredData[index].status = newStatus;
+                                  });
+
+                                  // reload list dari Supabase agar sinkron
+                                  await _loadPeminjaman();
+                                },
+                              ),
+                            );
+                          },
+                        ),
                       ),
               ),
             ],

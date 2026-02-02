@@ -1,39 +1,58 @@
+import 'detail_peminjaman_model.dart';
+
 class PengembalianModel {
-  final int idPengembalian;
-  final String namaUser;
-  final String namaAlat;
-  final int jumlahPinjam;
-  final String kondisiPengembalian;
-  final DateTime? tglPinjam;
-  final DateTime? tglDikembalikan;
+  final String id;
+  final String nama;
+  final String tanggalPeminjaman;
+  final String tanggalPengembalian;
+  final String? tanggalDikembalikan;
+  final String status;
+  final int dendaKerusakan;
+  final int totalDenda;
+  final List<DetailPeminjaman> alatList;
 
   PengembalianModel({
-    required this.idPengembalian,
-    required this.namaUser,
-    required this.namaAlat,
-    required this.jumlahPinjam,
-    required this.kondisiPengembalian,
-    required this.tglPinjam,
-    required this.tglDikembalikan,
+    required this.id,
+    required this.nama,
+    required this.tanggalPeminjaman,
+    required this.tanggalPengembalian,
+    this.tanggalDikembalikan,
+    required this.status,
+    required this.dendaKerusakan,
+    required this.totalDenda,
+    required this.alatList,
   });
 
   factory PengembalianModel.fromJson(Map<String, dynamic> json) {
-    final peminjaman = json['peminjaman'];
-    final detail = peminjaman['detail_peminjaman'][0];
-    final alat = detail['alat'];
+    var detailList = json['detail_peminjaman'] as List<dynamic>? ?? [];
+    List<DetailPeminjaman> alatList = detailList
+        .map((e) => DetailPeminjaman.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
 
     return PengembalianModel(
-      idPengembalian: json['id_pengembalian'],
-      namaUser: peminjaman['nama_user'] ?? '-',
-      namaAlat: alat['nama_alat'] ?? '-',
-      jumlahPinjam: detail['jumlah_pinjam'] ?? 0,
-      kondisiPengembalian: json['kondisi_pengembalian'] ?? '-',
-      tglPinjam: peminjaman['tgl_pinjam'] != null
-          ? DateTime.parse(peminjaman['tgl_pinjam'])
-          : null,
-      tglDikembalikan: json['tgl_dikembalikan'] != null
-          ? DateTime.parse(json['tgl_dikembalikan'])
-          : null,
+      id: json['id_peminjaman'].toString(),
+      nama: json['nama_user'] ?? '',
+      tanggalPeminjaman: json['tgl_pinjam'] ?? '',
+      tanggalPengembalian: json['tgl_kembali'] ?? '',
+      tanggalDikembalikan: json['tgl_dikembalikan'],
+      status: json['status'] ?? '',
+      dendaKerusakan: json['denda_kerusakan'] ?? 0,
+      totalDenda: json['total_denda'] ?? 0,
+      alatList: alatList,
+    );
+  }
+
+  PengembalianModel copyWith({String? status}) {
+    return PengembalianModel(
+      id: id,
+      nama: nama,
+      tanggalPeminjaman: tanggalPeminjaman,
+      tanggalPengembalian: tanggalPengembalian,
+      tanggalDikembalikan: tanggalDikembalikan,
+      status: status ?? this.status,
+      dendaKerusakan: dendaKerusakan,
+      totalDenda: totalDenda,
+      alatList: alatList,
     );
   }
 }

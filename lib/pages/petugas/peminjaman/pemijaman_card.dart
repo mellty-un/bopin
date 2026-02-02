@@ -1,13 +1,17 @@
+import 'package:aplikasi_peminjaman_alat/core/services/peminjaman_service.dart';
+import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
+import 'package:aplikasi_peminjaman_alat/models/peminjaman_model.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/status_badge.dart';
 import 'package:flutter/material.dart';
 
 class PeminjamanCard extends StatefulWidget {
-  final Map<String, dynamic> data;
-  final Function(String) onUpdate;
+  final PeminjamanModel model;
+  final Function(String) onUpdate; // callback untuk update UI lokal
 
   const PeminjamanCard({
-    super.key, 
-    required this.data, 
-    required this.onUpdate
+    super.key,
+    required this.model,
+    required this.onUpdate,
   });
 
   @override
@@ -16,19 +20,19 @@ class PeminjamanCard extends StatefulWidget {
 
 class _PeminjamanCardState extends State<PeminjamanCard> {
   bool expand = false;
+  bool loadingUpdate = false; // untuk menandai proses update
 
   Color colorStatus(String s) {
     if (s == 'Disetujui') return const Color(0xff22C55E);
     if (s == 'Ditolak') return const Color(0xffEF4444);
-    if (s == 'Pengajuan') return const Color(0xffFACC15);
-    return const Color(0xffFACC15);
+    if (s == 'Menunggu') return const Color(0xffFACC15);
+    if (s == 'Dikembalikan') return const Color(0xff3B82F6);
+    return const Color(0xff9CA3AF);
   }
 
   @override
   Widget build(BuildContext context) {
-    final status = widget.data['status'];
-    final alat = widget.data['alat'] ?? {};
-    final kembali = widget.data['kembali'] ?? '';
+    final model = widget.model;
 
     return GestureDetector(
       onTap: () {
@@ -53,24 +57,24 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Nama dan Icon Check/Cancel (SELALU TAMPIL)
+            /// ================= HEADER =================
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                /// Nama & tanggal
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.data['nama'] ?? '',
+                      model.nama,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: Colors.black,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      widget.data['tanggal'] ?? '',
+                      model.tanggal,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF666666),
@@ -78,86 +82,70 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
                     ),
                   ],
                 ),
-                // Icon Check dan Cancel di bagian atas (hanya untuk status Pengajuan)
-                if (status == 'Pengajuan' || status == 'Menunggu')
+
+                /// Action / Status
+                if (model.status == 'Menunggu')
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () => _showConfirmationDialog(true),
-                        icon: const Icon(
-                          Icons.check_circle,
-                          color: Color(0xff22C55E),
-                          size: 28,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () => _showConfirmationDialog(false),
-                        icon: const Icon(
-                          Icons.cancel,
-                          color: Color(0xffEF4444),
-                          size: 28,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
+                      loadingUpdate
+                          ? const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Row(
+                              children: [
+                                IconButton(
+                                  onPressed: () => _showConfirmationDialog(true),
+                                  icon: const Icon(
+                                    Icons.check_circle,
+                                    color: Color(0xff22C55E),
+                                    size: 28,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  onPressed: () => _showConfirmationDialog(false),
+                                  icon: const Icon(
+                                    Icons.cancel,
+                                    color: Color(0xffEF4444),
+                                    size: 28,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
+                            ),
                     ],
                   )
                 else
-                  // Jika sudah disetujui/ditolak, tampilkan status badge di atas
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorStatus(status),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      status,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                  StatusBadge(status: model.status),
               ],
             ),
 
-            // DETAIL HANYA TAMPIL JIKA DIKLIK (expand = true)
+            /// ================= DETAIL =================
             if (expand) ...[
               const SizedBox(height: 16),
-              Container(
-                height: 1,
-                color: const Color(0xFFEEEEEE),
-              ),
+              const Divider(height: 1),
               const SizedBox(height: 16),
 
-              // Section Alat
               const Text(
                 'Alat :',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
-              
               const SizedBox(height: 8),
-              
-              // List alat
-              if (alat is Map && alat.isNotEmpty)
-                ...alat.entries.map((entry) {
-                  return Padding(
+
+              /// List alat
+              if (model.alat.isNotEmpty)
+                ...model.alat.entries.map(
+                  (e) => Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [
                         Text(
-                          entry.key ?? '',
+                          e.key,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF666666),
@@ -165,7 +153,7 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
                         ),
                         const Spacer(),
                         Text(
-                          '${entry.value}',
+                          '${e.value}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF666666),
@@ -173,22 +161,18 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
                         ),
                       ],
                     ),
-                  );
-                }).toList()
+                  ),
+                )
               else
                 const Text(
                   'Tidak ada alat',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF999999),
-                  ),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
                 ),
-              
-              // Tanggal kembali
-              if (kembali.isNotEmpty) ...[
+
+              if ((model.kembali ?? '').isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
-                  'Kembali : $kembali',
+                  'Kembali : ${model.kembali}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF666666),
@@ -196,39 +180,17 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
                 ),
               ],
 
-              // Status section di bagian bawah (setelah expand)
               const SizedBox(height: 16),
+
+              /// Status bawah
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     'Status :',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
-                  
-                  // Status badge di bagian bawah (setelah expand)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorStatus(status),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      status,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                  StatusBadge(status: model.status),
                 ],
               ),
             ],
@@ -241,74 +203,53 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
   void _showConfirmationDialog(bool approve) {
     showDialog(
       context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(approve ? 'Setujui Peminjaman' : 'Tolak Peminjaman'),
+        content: Text(
+          'Apakah kamu yakin ingin ${approve ? 'menyetujui' : 'menolak'} peminjaman ini?',
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                approve ? 'Setujui Peminjaman' : 'Tolak Peminjaman',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${approve ? 'menyetujui' : 'menolak'} peminjaman ini?',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Tidak',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      widget.onUpdate(approve ? 'Disetujui' : 'Ditolak');
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: approve ? const Color(0xff22C55E) : const Color(0xffEF4444),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                    ),
-                    child: const Text(
-                      'Ya',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tidak'),
           ),
-        ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context); // tutup dialog dulu
+              setState(() => loadingUpdate = true);
+
+              try {
+                final newStatus = approve ? 'Disetujui' : 'Ditolak';
+
+                // update status ke Supabase
+                await PeminjamanService.updateStatus(
+                  idPeminjaman: widget.model.id,
+                  status: newStatus,
+                );
+
+                // update UI lokal
+                widget.onUpdate(newStatus);
+
+                // tampilkan popup sukses
+                SuccessPopup.show(context, 'Status berhasil diubah');
+              } catch (e) {
+                debugPrint('Gagal update status: $e');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Gagal update status')),
+                );
+              } finally {
+                setState(() => loadingUpdate = false);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: approve
+                  ? const Color(0xff22C55E)
+                  : const Color(0xffEF4444),
+            ),
+            child: const Text('Ya'),
+          ),
+        ],
       ),
     );
   }

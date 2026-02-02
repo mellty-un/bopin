@@ -120,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
                       error: emailError,
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 22),
                     const Text('Kata Sandi'),
                     const SizedBox(height: 6),
                     _inputBox(

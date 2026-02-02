@@ -11,9 +11,11 @@ class Kategori {
 
   factory Kategori.fromJson(Map<String, dynamic> json) {
     return Kategori(
-      idKategori: json['id_kategori'] ?? json['id'] ?? 0,
+      idKategori: (json['id_kategori'] as num?)?.toInt()
+          ?? (json['id'] as num?)?.toInt()
+          ?? 0,
       namaKategori: json['nama_kategori'] ?? json['name'] ?? '',
-      createdAt: json['created_at'] != null 
+      createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,
     );
@@ -23,7 +25,8 @@ class Kategori {
     return {
       'id_kategori': idKategori,
       'nama_kategori': namaKategori,
-      if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
+      if (createdAt != null)
+        'created_at': createdAt!.toIso8601String(),
     };
   }
 

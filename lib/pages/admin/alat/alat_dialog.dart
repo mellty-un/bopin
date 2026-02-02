@@ -149,21 +149,18 @@ class _AlatDialogState extends State<AlatDialog> {
 Future<void> _saveAlat() async {
   setState(() => _errorMessage = null);
 
-  if (_selectedKondisi == null) {
-    setState(() => _errorMessage = 'Kondisi harus dipilih');
-    return;
-  }
-
-  if (_selectedKategoriId == null || _selectedKategoriId == 0) {
-    setState(() => _errorMessage = 'Kategori harus dipilih');
-    return;
-  }
-
+  // ================= VALIDASI WAJIB =================
   if (!_formKey.currentState!.validate()) return;
 
+  // Cek gambar wajib
+  if (_selectedImageFile == null && _webImageBytes == null && (_existingImageName == null || _existingImageName!.isEmpty)) {
+    setState(() => _errorMessage = 'Gambar wajib dipilih');
+    return;
+  }
+
+  // Cek stok
   final stokTotal = int.tryParse(_stokTotalController.text) ?? 0;
   final stokTersedia = int.tryParse(_stokTersediaController.text) ?? 0;
-
   if (stokTersedia > stokTotal) {
     setState(() => _errorMessage = 'Stok tersedia tidak boleh lebih dari stok total');
     return;
@@ -179,13 +176,9 @@ Future<void> _saveAlat() async {
       setState(() => _isUploading = true);
 
       if (kIsWeb && _webImageBytes != null) {
-        finalImageName = await _alatService.uploadImageBytes(
-          _webImageBytes!,
-        );
+        finalImageName = await _alatService.uploadImageBytes(_webImageBytes!);
       } else if (!kIsWeb && _selectedImageFile != null) {
-        finalImageName = await _alatService.uploadImage(
-          _selectedImageFile!,
-        );
+        finalImageName = await _alatService.uploadImage(_selectedImageFile!);
       }
 
       setState(() => _isUploading = false);
@@ -194,7 +187,6 @@ Future<void> _saveAlat() async {
     // ================= SAVE DATA =================
     if (widget.isEdit && widget.alat != null) {
       final id = widget.alat!['id_alat'] ?? widget.alat!['id'];
-
       await _alatService.updateAlat(
         idAlat: id is String ? int.parse(id) : id,
         namaAlat: _namaController.text.trim(),
@@ -216,16 +208,9 @@ Future<void> _saveAlat() async {
     }
 
     if (!mounted) return;
-
     Navigator.of(context).pop(true);
     widget.onSuccess?.call();
-
-    SuccessPopup.show(
-      context,
-      widget.isEdit
-          ? 'Alat berhasil diupdate!'
-          : 'Alat berhasil ditambahkan!',
-    );
+    SuccessPopup.show(context, widget.isEdit ? 'Alat berhasil diupdate!' : 'Alat berhasil ditambahkan!');
   } catch (e) {
     if (!mounted) return;
     setState(() {
@@ -235,7 +220,6 @@ Future<void> _saveAlat() async {
     });
   }
 }
-
 
   String? _validateNumber(String? value) {
     if (value == null || value.isEmpty) {
@@ -528,14 +512,12 @@ Future<void> _saveAlat() async {
 
                 const SizedBox(height: 16),
                 
-                // Bagian Gambar
                 const Text(
                   'Gambar',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
 
-                // Info gambar yang ada (jika edit mode)
                 if (widget.isEdit && _existingImageName != null && _selectedImageFile == null && _webImageBytes == null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),

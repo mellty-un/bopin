@@ -1,3 +1,4 @@
+import 'package:aplikasi_peminjaman_alat/models/detail_peminjaman_model.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_card.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_dialog.dart';
 import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
@@ -14,7 +15,6 @@ class _PengembalianPageState extends State<PengembalianPage> {
   String selectedFilter = "Semua";
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
 
   List<Map<String, dynamic>> data = [
     {
@@ -54,7 +54,7 @@ class _PengembalianPageState extends State<PengembalianPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     key: _scaffoldKey,
+      key: _scaffoldKey,
       drawer: Padding(
         padding: const EdgeInsets.only(top: 60, bottom: 60),
         child: const SideBar(currentPage: "Pengembalian Peminjam"),
@@ -72,7 +72,11 @@ class _PengembalianPageState extends State<PengembalianPage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.menu, size: 32, color: Colors.black87),
+                      icon: const Icon(
+                        Icons.menu,
+                        size: 32,
+                        color: Colors.black87,
+                      ),
                       onPressed: () {
                         _scaffoldKey.currentState?.openDrawer();
                       },
@@ -89,7 +93,6 @@ class _PengembalianPageState extends State<PengembalianPage> {
                   ],
                 ),
               ),
-
 
               const SizedBox(height: 20),
 
@@ -134,33 +137,46 @@ class _PengembalianPageState extends State<PengembalianPage> {
               /// LIST
               Expanded(
                 child: ListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: filtered.map((e) {
+                    List<DetailPeminjaman> alatList = [];
+                    if (e["alatList"] != null) {
+                      alatList = (e["alatList"] as List)
+                          .map(
+                            (item) => DetailPeminjaman(
+                              namaAlat: item["nama"] ?? "",
+                              jumlah: item["jumlah"] ?? 0,
+                              kondisi: item["kondisi"] ?? "",
+                            ),
+                          )
+                          .toList();
+                    }
+
                     return PengembalianCard(
                       nama: "Peminjam",
                       tanggal: e["tanggal"],
                       status: e["status"],
-                      alatList: List<Map<String, dynamic>>.from(e["alatList"]),
+                      alatList: alatList,
                       tanggalPeminjaman: e["tglPinjam"],
                       tanggalPengembalian: e["tglKembali"],
-                      tanggalDikembalikan: e["tglDikembalikan"],
-                      dendaKerusakan: e["dendaKerusakan"],
-                      totalDenda: e["total"],
+                      tanggalDikembalikan: e["tglDikembalikan"] ?? "",
+                      dendaKerusakan: e["dendaKerusakan"] ?? 0,
+                      totalDenda: e["total"] ?? 0,
                       onTap: () {
                         showDialog(
                           context: context,
                           builder: (_) => PengembalianDetailDialog(
                             id: e["id"],
-                            nama: "Peminjam", // atau ambil dari API kalau ada
+                            nama: "Peminjam",
                             tanggalDiajukan: e["tanggal"],
                             status: e["status"],
-                            alatList: List<Map<String, dynamic>>.from(
-                              e["alatList"],
-                            ),
+                            alatList: alatList,
                             tanggalPeminjaman: e["tglPinjam"],
                             tanggalPengembalian: e["tglKembali"],
-                            tanggalDikembalikan: e["tglDikembalikan"],
-                            dendaKerusakan: e["dendaKerusakan"],
-                            totalDenda: e["total"],
+                            tanggalDikembalikan: e["tglDikembalikan"] ?? "",
+                            dendaKerusakan: e["dendaKerusakan"] ?? 0,
+                            totalDenda: e["total"] ?? 0,
                             onProsesSuccess: () {
                               setState(() {
                                 e["status"] = "Selesai";
@@ -207,5 +223,4 @@ class _PengembalianPageState extends State<PengembalianPage> {
   }
 }
 
-class Z {
-}
+class Z {}

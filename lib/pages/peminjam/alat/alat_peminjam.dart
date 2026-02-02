@@ -23,7 +23,6 @@ class _AlatPeminjamPageState extends State<AlatPeminjamPage> {
   String? _errorMessage;
   bool _isRefreshing = false;
 
-  // Keranjang untuk menyimpan alat yang dipilih
   final List<Alat> _keranjangAlat = [];
   final Map<int, int> _jumlahPesanan = {}; // key: idAlat, value: jumlah
 

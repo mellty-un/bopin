@@ -14,17 +14,13 @@ class AdminDashboard extends StatefulWidget {
 class _AdminDashboardState extends State<AdminDashboard> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final SupabaseClient _supabase = SupabaseService.client;
-  
-  // Data statistik
+
   int totalUsers = 0;
   int totalAlat = 0;
   int totalKategori = 0;
   int totalPeminjam = 0;
-  
-  // Data riwayat terbaru
   List<Map<String, dynamic>> recentHistory = [];
-  
-  // Loading state
+
   bool isLoading = true;
   String? errorMessage;
 
@@ -41,7 +37,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     });
 
     try {
-      // Load semua data secara paralel
       await Future.wait([
         _loadTotalUsers(),
         _loadTotalAlat(),
@@ -67,7 +62,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .from('users')
           .select('id_user')
           .count(CountOption.exact);
-      
+
       setState(() {
         totalUsers = response.count ?? 0;
       });
@@ -82,7 +77,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .from('alat')
           .select('id_alat')
           .count(CountOption.exact);
-      
+
       setState(() {
         totalAlat = response.count ?? 0;
       });
@@ -97,7 +92,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .from('kategori')
           .select('id_kategori')
           .count(CountOption.exact);
-      
+
       setState(() {
         totalKategori = response.count ?? 0;
       });
@@ -114,7 +109,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .select('id_peminjaman')
           .neq('status', 'Ditolak')
           .count(CountOption.exact);
-      
+
       setState(() {
         totalPeminjam = response.count ?? 0;
       });
@@ -125,7 +120,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Future<void> _loadRecentHistory() async {
     try {
-      // Ambil 3 riwayat terbaru dari pengembalian
       final response = await _supabase
           .from('pengembalian')
           .select('''
@@ -145,16 +139,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .limit(3);
 
       final List<Map<String, dynamic>> history = [];
-      
+
       for (var item in response) {
         try {
           final peminjaman = item['peminjaman'] as Map<String, dynamic>?;
           if (peminjaman == null) continue;
-          
+
           final detailList = peminjaman['detail_peminjaman'] as List?;
           String? namaAlat;
           int jumlahAlat = 0;
-          
+
           if (detailList != null && detailList.isNotEmpty) {
             jumlahAlat = detailList.length;
             final detail = detailList[0] as Map<String, dynamic>?;
@@ -173,7 +167,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           if (item['tgl_dikembalikan'] != null) {
             try {
               final date = DateTime.parse(item['tgl_dikembalikan'] as String);
-              formattedDate = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+              formattedDate =
+                  '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
             } catch (e) {
               formattedDate = item['tgl_dikembalikan'].toString();
             }
@@ -189,7 +184,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           print('Error parsing history item: $e');
         }
       }
-      
+
       setState(() {
         recentHistory = history;
       });
@@ -227,7 +222,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth - 40 - 16) / 2; 
+    final cardWidth = (screenWidth - 40 - 16) / 2;
     final cardHeight = 133;
 
     return Scaffold(
@@ -249,7 +244,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.menu, size: 32, color: Colors.black87),
+                      icon: const Icon(
+                        Icons.menu,
+                        size: 32,
+                        color: Colors.black87,
+                      ),
                       onPressed: () {
                         _scaffoldKey.currentState?.openDrawer();
                       },
@@ -266,10 +265,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(width: 40),
 
-              // Loading indicator jika masih loading
               if (isLoading)
                 Center(
                   child: Padding(
@@ -283,8 +281,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
                 )
-
-              // Error message jika ada error
               else if (errorMessage != null)
                 Container(
                   width: double.infinity,
@@ -309,116 +305,98 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         onPressed: _loadDashboardData,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
-                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 10,
+                          ),
                         ),
-                        child: Text('Coba Lagi', style: TextStyle(color: Colors.white)),
+                        child: Text(
+                          'Coba Lagi',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ],
                   ),
                 )
-
               // Content utama
-              else Column(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    height: 160,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColor.primary,
-                      borderRadius: BorderRadius.circular(15),
+              else
+                Column(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      height: 160,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColor.primary,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Selamat Datang!',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Text(
+                            'Melati Tiara',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'kelola sistem peminjaman dengan mudah\ndan efisien',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 16,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+
+                    const SizedBox(height: 30),
+
+                    // ===== STAT CARDS =====
+                    GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: cardWidth / cardHeight,
                       children: [
-                        const Text(
-                          'Selamat Datang!',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        _buildStatCard(
+                          icon: Icons.groups_outlined,
+                          value: totalUsers.toString(),
+                          label: 'Total Pengguna',
                         ),
-                        const Text(
-                          'Melati Tiara',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        _buildStatCard(
+                          icon: Icons.inventory_2_outlined,
+                          value: totalAlat.toString(),
+                          label: 'Total Alat',
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'kelola sistem peminjaman dengan mudah\ndan efisien',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 16,
-                            height: 1.4,
-                          ),
+                        _buildStatCard(
+                          icon: Icons.category_outlined,
+                          value: totalKategori.toString(),
+                          label: 'Total Kategori',
+                        ),
+                        _buildStatCard(
+                          icon: Icons.access_time,
+                          value: totalPeminjam.toString(),
+                          label: 'Total Peminjam',
                         ),
                       ],
                     ),
-                  ),
 
-                  const SizedBox(height: 30),
-
-                  // ===== STAT CARDS =====
-                  GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: cardWidth / cardHeight,
-                    children: [
-                      _buildStatCard(
-                        icon: Icons.groups_outlined,
-                        value: totalUsers.toString(),
-                        label: 'Total Pengguna',
-                      ),
-                      _buildStatCard(
-                        icon: Icons.inventory_2_outlined,
-                        value: totalAlat.toString(),
-                        label: 'Total Alat',
-                      ),
-                      _buildStatCard(
-                        icon: Icons.category_outlined,
-                        value: totalKategori.toString(),
-                        label: 'Total Kategori',
-                      ),
-                      _buildStatCard(
-                        icon: Icons.access_time,
-                        value: totalPeminjam.toString(),
-                        label: 'Total Peminjam',
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // ===== RIWAYAT TERBARU =====
-                  const Text(
-                    'Riwayat Terbaru',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Tampilkan riwayat dari database
-                  ...recentHistory.map((history) => 
-                    _historyItem(
-                      title: history['title'] ?? 'Riwayat',
-                      subtitle: history['subtitle'] ?? 'Berhasil',
-                      qty: history['qty'] ?? '1 Alat',
-                      date: history['date'] ?? 'Tanggal',
-                    ),
-                  ).toList(),
-
-                  // Tampilkan pesan jika tidak ada riwayat
-                  if (recentHistory.isEmpty)
+                    const SizedBox(height: 30),
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -427,16 +405,46 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                       child: Center(
                         child: Text(
-                          'Belum ada riwayat',
+                          'Riwayat Terbaru',
                           style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 14,
+                            color: Colors.black,
+                            fontSize: 16,
                           ),
                         ),
                       ),
                     ),
-                ],
-              ),
+                    const SizedBox(height: 12),
+
+                    ...recentHistory
+                        .map(
+                          (history) => _historyItem(
+                            title: history['title'] ?? 'Riwayat',
+                            subtitle: history['subtitle'] ?? 'Berhasil',
+                            qty: history['qty'] ?? '1 Alat',
+                            date: history['date'] ?? 'Tanggal',
+                          ),
+                        )
+                        .toList(),
+
+                    if (recentHistory.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Belum ada riwayat',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -454,10 +462,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       decoration: BoxDecoration(
         color: const Color(0xFFF2F4F6),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFF9FB2C9),
-          width: 1.2,
-        ),
+        border: Border.all(color: const Color(0xFF9FB2C9), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -476,11 +481,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               color: const Color(0xFFD1D8DE),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: Colors.black87,
-            ),
+            child: Icon(icon, size: 20, color: Colors.black87),
           ),
           const SizedBox(height: 3),
           Center(
@@ -533,15 +534,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0xFF22C55E), 
+              color: const Color(0xFF22C55E),
               shape: BoxShape.circle,
             ),
             child: const Center(
-              child: Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: Icon(Icons.check, color: Colors.white, size: 20),
             ),
           ),
           const SizedBox(width: 12),
@@ -564,14 +561,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDCFCE7), 
+                    color: const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     subtitle,
                     style: const TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF16A34A), 
+                      color: Color(0xFF16A34A),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -593,10 +590,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               const SizedBox(height: 4),
               Text(
                 date,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade500,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
               ),
             ],
           ),

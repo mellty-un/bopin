@@ -1,4 +1,5 @@
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/alat/alat_peminjam.dart';
+import 'package:aplikasi_peminjaman_alat/pages/peminjam/dashboard/peminjam_dashboard.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengajuan/pengajuan_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/laporan/laporan_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/peminjaman/peminjaman_page.dart';
@@ -169,17 +170,17 @@ class _SideBarState extends State<SideBar> {
   // ================= PETUGAS =================
   List<Widget> _petugasMenu() => [
         _menuItem(title: "Dashboars", page: "DashboardPetugas", onTap: () => _go(const PetugasDashboard())),
+                _menuItem(title: "Peminjama", page: "PeminjamanPetugas", onTap: () => _go(const PeminjamanPage())),
         _menuItem(title: "Pengembalian", page: "PengembalianPetugas", onTap: () => _go(const PengembalianPage())),
-        _menuItem(title: "Laporans", page: "LaporanPetugas", onTap: () => _go(const LaporanPage())),
-        _menuItem(title: "Peminjama", page: "PeminjamanPetugas", onTap: () => _go(const PeminjamanPage())),
+        _menuItem(title: "Laporan", page: "LaporanPetugas", onTap: () => _go(const LaporanPage())),
       ];
 
   // ================= PEMINJAM =================
   List<Widget> _peminjamMenu() => [
-        _menuItem(title: "Dashboard", page: "PeminjamDashboard", onTap: () => _go(const PetugasDashboard())),
-        _menuItem(title: "Alat", page: "Alat Peminjam", onTap: () => _go(const AlatPeminjamPage())),
-        _menuItem(title: "Alat", page: "Pengajuan Peminjam", onTap: () => _go(const PengajuanPage())),
-        _menuItem(title: "Alat", page: "Pengembalian Peminjam", onTap: () => _go(const PengembalianPage())),
+        _menuItem(title: "Dashboard", page: "PeminjamDashboard", onTap: () => _go(const PeminjamDashboard())),
+        _menuItem(title: "Alat Peminjam", page: "Alat Peminjam", onTap: () => _go(const AlatPeminjamPage())),
+        _menuItem(title: "Pengajuan Peminjam", page: "Pengajuan Peminjam", onTap: () => _go(const PengajuanPage())),
+        _menuItem(title: "Pengembalian Peminjam", page: "Pengembalian Peminjam", onTap: () => _go(const PengembalianPage())),
       ];
 
   // ================= MENU ITEM =================
@@ -256,10 +257,8 @@ class _SideBarState extends State<SideBar> {
 
   Future<void> _performLogout() async {
     try {
-      // Tutup dialog
       if (context.mounted) Navigator.pop(context);
       
-      // Tampilkan loading indicator
       if (context.mounted) {
         showDialog(
           context: context,
@@ -270,7 +269,6 @@ class _SideBarState extends State<SideBar> {
         );
       }
 
-      // Lakukan sign out
       await supabase.auth.signOut();
 
       if (context.mounted) {

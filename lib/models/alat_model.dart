@@ -1,3 +1,5 @@
+import 'package:aplikasi_peminjaman_alat/models/kategori_model.dart';
+
 class Alat {
   final int idAlat;
   final String? namaAlat;
@@ -6,7 +8,7 @@ class Alat {
   final String? gambar;
   final int? stokTotal;
   final int? stokTersedia;
-  final Kategori? kategori; 
+  final Kategori? kategori;
 
   Alat({
     required this.idAlat,
@@ -21,45 +23,16 @@ class Alat {
 
   factory Alat.fromJson(Map<String, dynamic> json) {
     return Alat(
-      idAlat: json['id_alat'] as int,
+      idAlat: (json['id_alat'] as num).toInt(),
       namaAlat: json['nama_alat'] as String?,
-      idKategori: json['id_kategori'] as int?,
+      idKategori: (json['id_kategori'] as num?)?.toInt(),
       kondisi: json['kondisi'] as String?,
       gambar: json['gambar'] as String?,
-      stokTotal: json['stok_total'] as int?,
-      stokTersedia: json['stok_tersedia'] as int?,
-      kategori: json['kategori'] != null 
+      stokTotal: (json['stok_total'] as num?)?.toInt(),
+      stokTersedia: (json['stok_tersedia'] as num?)?.toInt(),
+      kategori: json['kategori'] != null
           ? Kategori.fromJson(json['kategori'] as Map<String, dynamic>)
           : null,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': idAlat,
-      'nama': namaAlat,
-      'kategori': kategori?.namaKategori ?? '', 
-      'kondisi': kondisi,
-      'imageUrl': gambar, 
-      'stok_total': stokTotal,
-      'stok_tersedia': stokTersedia,
-    };
-  }
-}
-
-class Kategori {
-  final int? idKategori;
-  final String? namaKategori;
-
-  Kategori({
-    this.idKategori,
-    this.namaKategori,
-  });
-
-  factory Kategori.fromJson(Map<String, dynamic> json) {
-    return Kategori(
-      idKategori: json['id_kategori'] as int?,
-      namaKategori: json['nama_kategori'] as String?,
     );
   }
 }
