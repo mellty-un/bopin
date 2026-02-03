@@ -225,7 +225,7 @@ class _DendaDialogState extends State<DendaDialog> {
                     });
                   },
                   decoration: InputDecoration(
-                    hintText: 'Pilih jenis denda',
+                    hintText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -249,7 +249,7 @@ class _DendaDialogState extends State<DendaDialog> {
                   controller: _amountController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    hintText: 'Contoh: Rp 5.000',
+                    hintText: '',
                     prefixIcon: const Icon(Icons.attach_money, size: 20),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),

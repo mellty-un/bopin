@@ -1,5 +1,6 @@
 // file: pengembalian_page.dart
 import 'package:aplikasi_peminjaman_alat/core/services/pengembalian_service.dart';
+import 'package:aplikasi_peminjaman_alat/core/utils/success_popup.dart';
 import 'package:aplikasi_peminjaman_alat/models/detail_peminjaman_model.dart';
 import 'package:aplikasi_peminjaman_alat/models/pengembalian_model.dart';
 import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
@@ -14,7 +15,6 @@ class PengembalianPage extends StatefulWidget {
   @override
   State<PengembalianPage> createState() => _PengembalianPageState();
 }
-
 
 class _PengembalianPageState extends State<PengembalianPage> {
   final TextEditingController _searchController = TextEditingController();
@@ -42,64 +42,56 @@ class _PengembalianPageState extends State<PengembalianPage> {
     }
   }
 
-void _updateStatusToSelesai(PengembalianModel model) async {
-  try {
-    // Ambil data peminjaman dari database untuk mendapatkan tgl_kembali
-    final peminjaman = await Supabase.instance.client
-        .from('peminjaman')
-        .select('tgl_kembali')
-        .eq('id_peminjaman', int.parse(model.id))
-        .single();
+  void _updateStatus(PengembalianModel model, String status) async {
+    try {
+      // Hitung keterlambatan
+      final peminjaman = await Supabase.instance.client
+          .from('peminjaman')
+          .select('tgl_kembali')
+          .eq('id_peminjaman', int.parse(model.id))
+          .single();
 
-    // Hitung keterlambatan
-    final tglKembali = DateTime.parse(peminjaman['tgl_kembali']);
-    final tglDikembalikan = DateTime.now();
-    final keterlambatan = tglDikembalikan.difference(tglKembali).inDays;
-    final keterlambatanHari = keterlambatan > 0 ? keterlambatan : 0;
+      final tglKembali = DateTime.parse(peminjaman['tgl_kembali']);
+      final tglDikembalikan = DateTime.now();
+      final keterlambatan = tglDikembalikan.difference(tglKembali).inDays;
+      final keterlambatanHari = keterlambatan > 0 ? keterlambatan : 0;
 
-    // Hitung denda keterlambatan (misal: Rp 5000 per hari)
-    final dendaKeterlambatan = keterlambatanHari * 5000;
+      final dendaKeterlambatan = keterlambatanHari * 5000;
 
-    await PengembalianService.prosesPengembalian(
-      idPeminjaman: model.id,
-      kondisiPengembalian: 'Baik',
-      keterlambatanHari: keterlambatanHari,
-      dendaKerusakan: model.dendaKerusakan ?? 0,
-      dendaKeterlambatan: dendaKeterlambatan,
-      dendaKehilangan: 0,
-      catatan: null,
-      alatList: model.alatList,
-    );
+      // Proses pengembalian
+      await PengembalianService.prosesPengembalian(
+        idPeminjaman: model.id,
+        kondisiPengembalian: 'Baik',
+        keterlambatanHari: keterlambatanHari,
+        dendaKerusakan: model.dendaKerusakan ?? 0,
+        dendaKeterlambatan: dendaKeterlambatan,
+        dendaKehilangan: 0,
+        catatan: null,
+        alatList: model.alatList,
+      );
 
-    setState(() {
-      final index = _data.indexWhere((e) => e.id == model.id);
-      if (index != -1) {
-        _data[index] = model.copyWith(status: "Dikembalikan");
+      // Update status di UI
+      setState(() {
+        final index = _data.indexWhere((e) => e.id == model.id);
+        if (index != -1) {
+          _data[index] = model.copyWith(status: status);
+        }
+      });
+    } catch (e) {
+      debugPrint('❌ Error updating status: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memproses pengembalian: $e')),
+        );
       }
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Pengembalian berhasil diproses')),
-      );
-    }
-  } catch (e) {
-    debugPrint('❌ Error updating status: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memproses pengembalian: $e')),
-      );
     }
   }
-}
 
   List<PengembalianModel> getFilteredData() {
     List<PengembalianModel> filtered = _data;
 
     if (selectedFilter != "Semua") {
-      filtered = filtered
-          .where((item) => item.status == selectedFilter)
-          .toList();
+      filtered = filtered.where((item) => item.status == selectedFilter).toList();
     }
 
     final searchText = _searchController.text.toLowerCase();
@@ -133,17 +125,12 @@ void _updateStatusToSelesai(PengembalianModel model) async {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.menu, size: 32),
-                      onPressed: () {
-                        _scaffoldKey.currentState?.openDrawer();
-                      },
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                     ),
                     const SizedBox(width: 16),
                     const Text(
                       "Pengembalian",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -196,46 +183,52 @@ void _updateStatusToSelesai(PengembalianModel model) async {
                 child: loading
                     ? const Center(child: CircularProgressIndicator())
                     : filteredData.isEmpty
-                    ? const Center(child: Text("Tidak ada data"))
-                    : ListView.builder(
-                        itemCount: filteredData.length,
-                        itemBuilder: (context, index) {
-                          final data = filteredData[index];
-
-                          return PengembalianCard(
-                            nama: data.nama,
-                            tanggal: data.tanggalPeminjaman,
-                            status: data.status,
-                            onTap: () => showDialog(
-                              context: context,
-                              builder: (_) => PengembalianDetailDialog(
-                                id: data.id,
+                        ? const Center(child: Text("Tidak ada data"))
+                        : ListView.builder(
+                            itemCount: filteredData.length,
+                            itemBuilder: (context, index) {
+                              final data = filteredData[index];
+                              return PengembalianCard(
                                 nama: data.nama,
-                                tanggalDiajukan: data.tanggalPeminjaman,
+                                tanggal: data.tanggalPeminjaman,
                                 status: data.status,
+                                onTap: () => showDialog(
+                                  context: context,
+                                  builder: (_) => PengembalianDetailDialog(
+                                    id: data.id,
+                                    nama: data.nama,
+                                    tanggalDiajukan: data.tanggalPeminjaman,
+                                    status: data.status,
+                                    alatList: data.alatList,
+                                    tanggalPeminjaman: data.tanggalPeminjaman,
+                                    tanggalPengembalian: data.tanggalPengembalian,
+                                    tanggalDikembalikan: data.tanggalDikembalikan ?? '',
+                                    dendaKerusakan: data.dendaKerusakan,
+                                    totalDenda: data.totalDenda,
+                                    onProsesSuccess: (status) {
+                                      // Popup diterima / ditolak
+                                      SuccessPopup.show(
+                                        context,
+                                        status == "Selesai"
+                                            ? "Pengembalian diterima"
+                                            : "Pengembalian ditolak",
+                                      );
+
+                                      Future.delayed(const Duration(milliseconds: 700), () {
+                                        _updateStatus(data, status);
+                                      });
+                                    },
+                                  ),
+                                ),
                                 alatList: data.alatList,
                                 tanggalPeminjaman: data.tanggalPeminjaman,
                                 tanggalPengembalian: data.tanggalPengembalian,
-                                tanggalDikembalikan:
-                                    data.tanggalDikembalikan ??
-                                    '', // default string
+                                tanggalDikembalikan: data.tanggalDikembalikan ?? '',
                                 dendaKerusakan: data.dendaKerusakan,
                                 totalDenda: data.totalDenda,
-                                onProsesSuccess: () =>
-                                    _updateStatusToSelesai(data),
-                              ),
-                            ),
-                            alatList: data.alatList,
-                            tanggalPeminjaman: data.tanggalPeminjaman,
-                            tanggalPengembalian: data.tanggalPengembalian,
-                            tanggalDikembalikan:
-                                data.tanggalDikembalikan ??
-                                '', // default string
-                            dendaKerusakan: data.dendaKerusakan,
-                            totalDenda: data.totalDenda,
-                          );
-                        },
-                      ),
+                              );
+                            },
+                          ),
               ),
             ],
           ),

@@ -182,64 +182,50 @@ class PeminjamanUserService {
       return tanggal;
     }
   }
-
-  // Ajukan pengembalian
-  Future<bool> ajukanPengembalian(int idPeminjaman) async {
-    try {
-      // Update status peminjaman menjadi 'Dikembalikan'
-      await _supabase
-          .from('peminjaman')
-          .update({'status': 'Dikembalikan'})
-          .eq('id_peminjaman', idPeminjaman);
-
-      // Insert ke tabel pengembalian
-      await _supabase.from('pengembalian').insert({
-        'id_peminjaman': idPeminjaman,
-        'tgl_dikembalikan': DateTime.now().toIso8601String().split('T')[0],
-        'kondisi_pengembalian': 'Baik',
-        'keterlambatan_hari': 0,
-        'catatan': 'Pengembalian diajukan oleh peminjam',
-      });
-
-      // Kembalikan stok
-      final detailResponse = await _supabase
-          .from('detail_peminjaman')
-          .select('id_alat, jumlah_pinjam')
-          .eq('id_peminjaman', idPeminjaman);
-
-      for (var detail in detailResponse) {
-        final idAlat = detail['id_alat'] as int;
-        final jumlahPinjam = detail['jumlah_pinjam'] as int;
-
-        final alatResponse = await _supabase
-            .from('alat')
-            .select('stok_tersedia')
-            .eq('id_alat', idAlat)
-            .single();
-
-        final stokTersedia = alatResponse['stok_tersedia'] as int;
-        final stokBaru = stokTersedia + jumlahPinjam;
-
-        await _supabase
-            .from('alat')
-            .update({'stok_tersedia': stokBaru})
-            .eq('id_alat', idAlat);
-      }
-
-      // Log aktivitas
-      final userId = getCurrentUserId();
-      if (userId != null) {
-        await _supabase.from('log_aktivitas').insert({
-          'id_user': userId,
-          'aktivitas': 'Mengajukan pengembalian untuk peminjaman ID: $idPeminjaman',
-          'waktu': DateTime.now().toIso8601String(),
-        });
-      }
-
-      return true;
-    } catch (e) {
-      print('Error ajukan pengembalian: $e');
-      return false;
+Future<bool> ajukanPengembalian(
+  int idPeminjaman, {
+  DateTime? tanggalDikembalikan,
+}) async {
+  try {
+    if (idPeminjaman <= 0) {
+      throw Exception("ID peminjaman tidak valid");
     }
+
+    final tanggal = tanggalDikembalikan ?? DateTime.now();
+
+    // 1️⃣ Update status di tabel peminjaman
+    await _supabase
+        .from('peminjaman')
+        .update({'status': 'Menunggu Pengembalian'})
+        .eq('id_peminjaman', idPeminjaman);
+
+    // 2️⃣ Insert record pengembalian
+    await _supabase.from('pengembalian').insert({
+      'id_peminjaman': idPeminjaman,
+      'tgl_dikembalikan': tanggal.toIso8601String().split('T')[0],
+      // 'catatan' ada di DB, cukup tulis pesan
+      'catatan': 'Diajukan oleh peminjam',
+      // jangan masukkan status_pengembalian karena kolom itu tidak ada
+    });
+
+    // 3️⃣ Log aktivitas user
+    final userId = getCurrentUserId();
+    if (userId != null) {
+      await _supabase.from('log_aktivitas').insert({
+        'id_user': userId,
+        'aktivitas': 'Mengajukan pengembalian ID $idPeminjaman',
+        'waktu': DateTime.now().toIso8601String(),
+      });
+    }
+
+    return true;
+  } catch (e) {
+    print('❌ Error ajukan pengembalian: $e');
+    return false;
   }
+}
+
+
+
+
 }

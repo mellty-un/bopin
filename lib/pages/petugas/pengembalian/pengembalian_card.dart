@@ -19,7 +19,7 @@ class PengembalianCard extends StatelessWidget {
     required this.tanggal,
     required this.status,
     required this.onTap,
-    required this.alatList, // <-- ubah disini
+    required this.alatList, 
     required this.tanggalPeminjaman,
     required this.tanggalPengembalian,
     required this.tanggalDikembalikan,

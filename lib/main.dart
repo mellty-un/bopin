@@ -5,7 +5,9 @@ import 'package:aplikasi_peminjaman_alat/pages/admin/dashboard/admin_dashboard.d
 import 'package:aplikasi_peminjaman_alat/pages/admin/kelola%20pengguna/kelola_pengguna_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/auth/splash_screen.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/alat/alat_peminjam.dart';
+import 'package:aplikasi_peminjaman_alat/pages/peminjam/dashboard/peminjam_dashboard.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengajuan/pengajuan_page.dart';
+import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengembalian/pengembalian_peminjam_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/laporan/laporan_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/peminjaman/peminjaman_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_page.dart';
@@ -36,7 +38,7 @@ class MyApp extends StatelessWidget {
         title: 'boPin',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const PetugasDashboard(),
+        home: const SplashScreen(),
       ),
     );
   }

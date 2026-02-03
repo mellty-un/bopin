@@ -1,25 +1,26 @@
 import 'package:flutter/material.dart';
 
-class PengembalianCard extends StatelessWidget {
+class PengembalianPeminamCard extends StatelessWidget {
   final String tanggal;
   final String status;
   final int totalAlat;
-  final VoidCallback onTap;
+  final VoidCallback? onTap; // bisa null jika disabled
 
-  const PengembalianCard({
+  const PengembalianPeminamCard({
     super.key,
     required this.tanggal,
     required this.status,
     required this.totalAlat,
-    required this.onTap,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isSelesai = status == "Selesai";
+    final isMenunggu = status == "Menunggu";
 
     return InkWell(
-      onTap: onTap,
+      onTap: (isSelesai || isMenunggu) ? null : onTap, // disable jika sudah Selesai / Menunggu
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(14),
@@ -37,7 +38,7 @@ class PengembalianCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// HEADER
+            // Header Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -64,23 +65,18 @@ class PengembalianCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isSelesai
                         ? Colors.green
-                        : const Color(0xFF3A587A),
+                        : (isMenunggu ? Colors.orange : const Color(0xFF3A587A)),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     status,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
-
-            /// ALAT
+            // Total Alat Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

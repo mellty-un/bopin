@@ -118,6 +118,7 @@ class _AlatCardState extends State<AlatCard> {
           Expanded(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 12),
+              
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 color: Colors.grey[50],
@@ -170,7 +171,7 @@ class _AlatCardState extends State<AlatCard> {
           ),
           child: Image.network(
             _imageUrl,
-            fit: BoxFit.contain, // Pakai contain agar gambar utuh
+            fit: BoxFit.contain,
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;
               return Center(

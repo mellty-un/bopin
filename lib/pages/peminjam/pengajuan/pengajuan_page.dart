@@ -74,14 +74,9 @@ class _PengajuanPageState extends State<PengajuanPage> {
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: Drawer(
-        child: Padding(
-          padding: EdgeInsets.only(
-            top: screenHeight * 0.1,
-            bottom: screenHeight * 0.05,
-          ),
-          child: SideBar(currentPage: "PeminjamanPetugas"),
-        ),
+     drawer: Padding(
+        padding: const EdgeInsets.only(top: 70, bottom: 60),
+        child: const SideBar(currentPage: "Pengajuan"),
       ),
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -105,7 +100,7 @@ class _PengajuanPageState extends State<PengajuanPage> {
                     ),
                     const SizedBox(width: 16),
                     Text(
-                      "Peminjaman",
+                      "Pengajuan",
                       style: TextStyle(
                         fontSize: isSmallScreen ? 20 : 24,
                         fontWeight: FontWeight.bold,

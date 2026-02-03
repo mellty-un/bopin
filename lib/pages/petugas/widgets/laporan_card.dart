@@ -1,4 +1,5 @@
 import 'package:aplikasi_peminjaman_alat/models/laporan_model.dart';
+import 'package:aplikasi_peminjaman_alat/pages/petugas/widgets/laporan_pdf.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -113,27 +114,24 @@ class LaporanCard extends StatelessWidget {
           ),
 
           const SizedBox(height: 12),
-
-          /// BUTTON PRINT
-          Center(
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // TODO: Implement print functionality
-              },
-              icon: const Icon(Icons.print, size: 16),
-              label: const Text('Print Report'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A6FA5),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                textStyle: const TextStyle(fontSize: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
+Center(
+  child: ElevatedButton.icon(
+    onPressed: () {
+      LaporanPdf.printLaporan(laporan); // panggil PDF
+    },
+    icon: const Icon(Icons.print, size: 16),
+    label: const Text('Print Report'),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF4A6FA5),
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      textStyle: const TextStyle(fontSize: 13),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+    ),
+  ),
+),
         ],
       ),
     );

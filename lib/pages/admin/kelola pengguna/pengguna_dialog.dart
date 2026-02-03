@@ -266,7 +266,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: 'Masukkan nama lengkap',
+                    hintText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -338,7 +338,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                         enabled: true,
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          hintText: 'contoh@gmail.com',
+                          hintText: '',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -368,7 +368,7 @@ class _PenggunaDialogState extends State<PenggunaDialog> {
                       FilteringTextInputFormatter.digitsOnly,
                     ],
                     decoration: InputDecoration(
-                      hintText: 'Minimal 6 angka',
+                      hintText: '',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

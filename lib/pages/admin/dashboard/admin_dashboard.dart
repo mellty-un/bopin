@@ -20,6 +20,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int totalKategori = 0;
   int totalPeminjam = 0;
   List<Map<String, dynamic>> recentHistory = [];
+String? userName;
 
   bool isLoading = true;
   String? errorMessage;
@@ -28,6 +29,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void initState() {
     super.initState();
     _loadDashboardData();
+     _loadCurrentUser();
   }
 
   Future<void> _loadDashboardData() async {
@@ -43,6 +45,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         _loadTotalKategori(),
         _loadTotalPeminjam(),
         _loadRecentHistory(),
+        
       ]);
     } catch (e) {
       setState(() {
@@ -55,6 +58,29 @@ class _AdminDashboardState extends State<AdminDashboard> {
       });
     }
   }
+
+  Future<void> _loadCurrentUser() async {
+  try {
+    final user = _supabase.auth.currentUser;
+    if (user != null) {
+      // Ambil nama user dari tabel users
+      final response = await _supabase
+          .from('users')
+          .select('nama')
+          .eq('id_user', user.id)
+          .single();
+
+      setState(() {
+        userName = response['nama'] as String?;
+      });
+    }
+  } catch (e) {
+    print('Error loading current user: $e');
+    setState(() {
+      userName = 'User';
+    });
+  }
+}
 
   Future<void> _loadTotalUsers() async {
     try {
@@ -190,34 +216,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
       });
     } catch (e) {
       print('Error loading recent history: $e');
-      _loadDummyHistory();
     }
   }
 
-  void _loadDummyHistory() {
-    setState(() {
-      recentHistory = [
-        {
-          'title': 'Peminjaman',
-          'subtitle': 'Berhasil',
-          'qty': '2 Alat',
-          'date': '12/01/2026',
-        },
-        {
-          'title': 'Pengembalian',
-          'subtitle': 'Berhasil',
-          'qty': '1 Alat',
-          'date': '11/01/2026',
-        },
-        {
-          'title': 'Menambah Alat',
-          'subtitle': 'Berhasil',
-          'qty': '3 Alat',
-          'date': '10/01/2026',
-        },
-      ];
-    });
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -333,22 +335,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Selamat Datang!',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const Text(
-                            'Melati Tiara',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                      const Text(
+  'Selamat Datang!',
+  style: TextStyle(
+    color: Colors.white,
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+  ),
+),
+Text(
+  userName ?? 'User', // <-- disini
+  style: const TextStyle(
+    color: Colors.white,
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+  ),
+),
                           const SizedBox(height: 6),
                           Text(
                             'kelola sistem peminjaman dengan mudah\ndan efisien',

@@ -337,47 +337,44 @@ class RiwayatService {
   /// =============================
   /// DELETE PENGEMBALIAN - FIXED (menerima int?)
   /// =============================
-  Future<void> deletePengembalian(int? idPengembalian) async {
-    try {
-      // VALIDASI
-      if (idPengembalian == null) {
-        throw Exception('ID pengembalian tidak ditemukan');
-      }
-      
-      if (idPengembalian <= 0) {
-        throw Exception('ID pengembalian tidak valid: $idPengembalian');
-      }
-
-      print('🗑️ Deleting pengembalian ID: $idPengembalian');
-
-      // Hapus pengembalian
-      await _client
-          .from('pengembalian')
-          .delete()
-          .eq('id_pengembalian', idPengembalian);
-
-      print('✅ Pengembalian deleted successfully');
-    } on PostgrestException catch (e) {
-      print('❌ PostgrestException: ${e.code} - ${e.message}');
-      
-      if (e.code == '42501') {
-        throw Exception('Akses ditolak. Hanya admin/petugas yang bisa menghapus data');
-      }
-      
-      if (e.code == '23503') {
-        throw Exception('Tidak bisa menghapus: Data masih memiliki relasi dengan tabel lain');
-      }
-      
-      if (e.code == 'PGRST116') {
-        throw Exception('Data pengembalian tidak ditemukan');
-      }
-      
-      throw Exception('Gagal menghapus: ${e.message}');
-    } catch (e) {
-      print('❌ Error in deletePengembalian: $e');
-      throw Exception('Terjadi kesalahan saat menghapus');
+ Future<void> deletePengembalian(int? idPengembalian) async {
+  try {
+    if (idPengembalian == null || idPengembalian <= 0) {
+      throw Exception('ID pengembalian tidak valid');
     }
+
+    print('🗑️ Deleting pengembalian ID: $idPengembalian');
+
+    // 1️⃣ Ambil id_peminjaman terlebih dahulu
+    final pengembalian = await _client
+        .from('pengembalian')
+        .select('id_peminjaman')
+        .eq('id_pengembalian', idPengembalian)
+        .single();
+
+    final int idPeminjaman = pengembalian['id_peminjaman'];
+
+    // 2️⃣ Hapus pengembalian
+    await _client
+        .from('pengembalian')
+        .delete()
+        .eq('id_pengembalian', idPengembalian);
+
+    // 3️⃣ Kembalikan status peminjaman
+    await _client
+        .from('peminjaman')
+        .update({'status': 'Dipinjam'})
+        .eq('id_peminjaman', idPeminjaman);
+
+    print('✅ Pengembalian deleted & status peminjaman restored');
+  } on PostgrestException catch (e) {
+    print('❌ PostgrestException: ${e.code} - ${e.message}');
+    throw Exception('Gagal menghapus pengembalian');
+  } catch (e) {
+    print('❌ Error in deletePengembalian: $e');
+    throw Exception('Terjadi kesalahan saat menghapus');
   }
+}
 
   /// =============================
   /// CREATE PENGEMBALIAN BARU (tambah data pengembalian)

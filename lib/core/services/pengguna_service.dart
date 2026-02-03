@@ -67,108 +67,47 @@ class PenggunaService {
   /// =============================
   /// CREATE PENGGUNA
   /// =============================
-  static Future<String> createPengguna({
-    required String email,
-    required String password,
-    required String nama,
-    required String role,
-  }) async {
-    try {
-      // 1. CEK ADMIN
-      final isAdmin = await _isAdmin();
-      if (!isAdmin) {
-        throw Exception('Hanya admin yang bisa menambah pengguna');
-      }
+static Future<String> createPengguna({
+  required String email,
+  required String password,
+  required String nama,
+  required String role,
+}) async {
+  try {
+    final normalizedEmail = email.trim().toLowerCase();
+    final normalizedRole = role.trim().toLowerCase();
 
-      // 2. VALIDASI
-      final validRoles = ['admin', 'petugas', 'peminjam'];
-      final normalizedRole = role.toLowerCase().trim();
-      final normalizedEmail = email.trim().toLowerCase();
-      final cleanPassword = password.trim();
+    // ✅ CUKUP SIGN UP AUTH
+    final authRes = await _client.auth.signUp(
+      email: normalizedEmail,
+      password: password.trim(),
+      data: {
+        'role': normalizedRole, // masuk JWT + trigger
+        'nama': nama.trim(),
+      },
+    );
 
-      if (!validRoles.contains(normalizedRole)) {
-        throw Exception('Role tidak valid');
-      }
-
-      if (nama.trim().isEmpty) {
-        throw Exception('Nama tidak boleh kosong');
-      }
-
-      final emailError = _validateEmail(normalizedEmail);
-      if (emailError != null) throw Exception(emailError);
-
-      if (cleanPassword.length < 6) {
-        throw Exception('Kata sandi minimal 6 karakter');
-      }
-
-      print('👑 Creating user: $normalizedEmail');
-
-      // 3. SIGN UP (akan auto trigger insert ke tabel users)
-      final authResponse = await _client.auth.signUp(
-        email: normalizedEmail,
-        password: cleanPassword,
-        data: {
-          'nama': nama.trim(),
-          'role': normalizedRole,
-        },
-      );
-
-      if (authResponse.user == null) {
-        throw Exception('Gagal membuat user');
-      }
-
-      final userId = authResponse.user!.id;
-      print('✅ User created: $userId');
-
-      // 4. TUNGGU TRIGGER SELESAI
-      await Future.delayed(const Duration(milliseconds: 1500));
-
-      // 5. VERIFIKASI DATA TERSIMPAN
-      try {
-        final check = await _client
-            .from('users')
-            .select('id_user')
-            .eq('id_user', userId)
-            .maybeSingle();
-
-        if (check == null) {
-          print('⚠️ User not in table, manual insert...');
-          
-          // Manual insert jika trigger gagal
-          await _client.from('users').insert({
-            'id_user': userId,
-            'nama': nama.trim(),
-            'role': normalizedRole,
-            'email': normalizedEmail,
-            'created_at': DateTime.now().toIso8601String(),
-          });
-        }
-      } catch (insertError) {
-        print('⚠️ Insert error (might be duplicate): $insertError');
-      }
-
-      return userId;
-    } on AuthException catch (e) {
-      print('❌ AuthException: ${e.message}');
-      if (e.message.toLowerCase().contains('already registered') ||
-          e.message.toLowerCase().contains('user already')) {
-        throw Exception('Email sudah terdaftar');
-      }
-      throw Exception('Gagal autentikasi: ${e.message}');
-    } on PostgrestException catch (e) {
-      print('❌ PostgrestException: ${e.code} - ${e.message}');
-      if (e.code == '23505') {
-        throw Exception('Email sudah terdaftar');
-      }
-      if (e.code == '42501') {
-        throw Exception('Akses ditolak. Pastikan Anda admin');
-      }
-      throw Exception('Gagal menyimpan: ${e.message}');
-    } catch (e) {
-      print('❌ Error: $e');
-      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    final user = authRes.user;
+    if (user == null) {
+      throw Exception('Gagal membuat akun');
     }
+
+    // ❌ JANGAN INSERT / UPSERT public.users DI SINI
+    // Trigger database yang akan handle
+
+    return user.id;
+  } on AuthException catch (e) {
+    if (e.message.toLowerCase().contains('already')) {
+      throw Exception('Email sudah terdaftar');
+    }
+    throw Exception(e.message);
+  } catch (e) {
+    throw Exception(e.toString().replaceAll('Exception: ', ''));
   }
+}
+
+
+
 
   /// =============================
   /// UPDATE PENGGUNA

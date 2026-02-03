@@ -1,4 +1,5 @@
 import 'package:aplikasi_peminjaman_alat/core/theme/app_color.dart';
+import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,6 +12,7 @@ class PeminjamDashboard extends StatefulWidget {
 
 class _PeminjamDashboardState extends State<PeminjamDashboard> {
   String namaUser = 'Pengguna';
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -32,6 +34,11 @@ class _PeminjamDashboardState extends State<PeminjamDashboard> {
     final cardHeight = 133;
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: Padding(
+        padding: const EdgeInsets.only(top: 70, bottom: 60),
+        child: const SideBar(currentPage: "Dashboard"),
+      ),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -40,20 +47,25 @@ class _PeminjamDashboardState extends State<PeminjamDashboard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ===== HEADER =====
-              Row(
-                children: const [
-                  Icon(Icons.menu, size: 28, color: Colors.black87),
-                  SizedBox(width: 16),
-                  Text(
-                    'Dashboard',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
+         Row(
+  children: [
+    IconButton(
+      icon: const Icon(Icons.menu, size: 28, color: Colors.black87),
+      onPressed: () {
+        _scaffoldKey.currentState?.openDrawer();
+      },
+    ),
+    const SizedBox(width: 8),
+    const Text(
+      'Dashboard',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
+    ),
+  ],
+),
 
               const SizedBox(height: 16),
 

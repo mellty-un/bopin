@@ -359,7 +359,7 @@ Future<void> _saveAlat() async {
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
-                    hintText: 'Masukkan nama alat',
+                    hintText: '',
                     hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -475,7 +475,7 @@ Future<void> _saveAlat() async {
                             keyboardType: TextInputType.number,
                             style: const TextStyle(fontSize: 14),
                             decoration: _inputDecoration().copyWith(
-                              hintText: '0',
+                              hintText: '',
                             ),
                             validator: (value) => _validateNumber(value),
                           ),
@@ -500,7 +500,7 @@ Future<void> _saveAlat() async {
                             keyboardType: TextInputType.number,
                             style: const TextStyle(fontSize: 14),
                             decoration: _inputDecoration().copyWith(
-                              hintText: '0',
+                              hintText: '',
                             ),
                             validator: (value) => _validateNumber(value),
                           ),

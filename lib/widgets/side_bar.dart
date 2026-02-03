@@ -1,6 +1,7 @@
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/alat/alat_peminjam.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/dashboard/peminjam_dashboard.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengajuan/pengajuan_page.dart';
+import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengembalian/pengembalian_peminjam_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/laporan/laporan_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/peminjaman/peminjaman_page.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_page.dart';
@@ -178,9 +179,9 @@ class _SideBarState extends State<SideBar> {
   // ================= PEMINJAM =================
   List<Widget> _peminjamMenu() => [
         _menuItem(title: "Dashboard", page: "Dashboard", onTap: () => _go(const PeminjamDashboard())),
-        _menuItem(title: "Alat Peminjam", page: "Alat Peminjam", onTap: () => _go(const AlatPeminjamPage())),
-        _menuItem(title: "Pengajuan Peminjam", page: "Pengajuan Peminjam", onTap: () => _go(const PengajuanPage())),
-        _menuItem(title: "Pengembalian Peminjam", page: "Pengembalian Peminjam", onTap: () => _go(const PengembalianPage())),
+        _menuItem(title: "Alat ", page: "Alat Peminjam", onTap: () => _go(const AlatPeminjamPage())),
+        _menuItem(title: "Pengajuan ", page: "Pengajuan ", onTap: () => _go(const PengajuanPage())),
+        _menuItem(title: "Pengembalian ", page: "Pengembalian ", onTap: () => _go(const PengembaliaPeminjamnPage())),
       ];
 
   // ================= MENU ITEM =================

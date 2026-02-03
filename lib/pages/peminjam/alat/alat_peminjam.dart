@@ -143,7 +143,10 @@ class _AlatPeminjamPageState extends State<AlatPeminjamPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      drawer: const SideBar(currentPage: "Alat Peminjam"),
+  drawer: Padding(
+        padding: const EdgeInsets.only(top: 70, bottom: 60),
+        child: const SideBar(currentPage: "Alat Peminjam"),
+      ),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: RefreshIndicator(

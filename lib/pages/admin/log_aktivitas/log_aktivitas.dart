@@ -225,6 +225,7 @@ class _LogAktivitasState extends State<LogAktivitas> {
                 }).toList(),
               ),
           ],
+          
         ),
       ),
     );
