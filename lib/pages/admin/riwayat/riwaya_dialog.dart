@@ -20,13 +20,12 @@ class RiwayatDialog extends StatefulWidget {
 
 class _RiwayatDialogState extends State<RiwayatDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _tanggalController = TextEditingController();
+  final _namaController = TextEditingController();
   final _catatanController = TextEditingController();
   final RiwayatService _riwayatService = RiwayatService();
 
   bool _isLoading = false;
   String? _errorMessage;
-  DateTime? _selectedDate;
   String? _selectedKondisi;
 
   final List<String> _kondisiOptions = ['Baik', 'Rusak', 'Hilang'];
@@ -35,71 +34,52 @@ class _RiwayatDialogState extends State<RiwayatDialog> {
   void initState() {
     super.initState();
     if (widget.isEdit && widget.riwayat != null) {
-      // Format tanggal jika ada
-      if (widget.riwayat!['tgl_dikembalikan'] != null) {
-        final dateStr = widget.riwayat!['tgl_dikembalikan'];
-        if (dateStr is String && dateStr.isNotEmpty) {
-          try {
-            _selectedDate = DateTime.parse(dateStr);
-            _tanggalController.text = _formatDate(_selectedDate!);
-          } catch (e) {
-            print('Error parsing date: $e');
-          }
-        }
-      }
+      // Set nama user
+      _namaController.text = widget.riwayat!['nama_user'] ?? '';
+      
+      // Debug: Print data yang diterima
+      print('🔍 Data riwayat yang diterima:');
+      print('  id_peminjaman: ${widget.riwayat!['id_peminjaman']}');
+      print('  id_pengembalian: ${widget.riwayat!['id_pengembalian']}');
+      print('  nama_user: ${widget.riwayat!['nama_user']}');
+      print('  kondisi_pengembalian: ${widget.riwayat!['kondisi_pengembalian']}');
+      print('  kondisi: ${widget.riwayat!['kondisi']}');
+      print('  catatan: ${widget.riwayat!['catatan']}');
 
-      // Set kondisi
-      final kondisi = widget.riwayat!['kondisi'] ??
-          widget.riwayat!['kondisi_pengembalian'];
+      // Set kondisi - coba dari beberapa field
+      String? kondisi;
+      
+      if (widget.riwayat!['kondisi_pengembalian'] != null) {
+        kondisi = widget.riwayat!['kondisi_pengembalian'] as String;
+      } else if (widget.riwayat!['kondisi'] != null) {
+        kondisi = widget.riwayat!['kondisi'] as String;
+      }
+      
       if (kondisi != null && _kondisiOptions.contains(kondisi)) {
         _selectedKondisi = kondisi;
+        print('✅ Kondisi ditemukan: $kondisi');
+      } else {
+        print('⚠️ Kondisi tidak ditemukan atau tidak valid: $kondisi');
+        _selectedKondisi = 'Baik'; // Default
       }
 
       // Set catatan
-      _catatanController.text = widget.riwayat!['catatan'] ?? '';
+      final catatan = widget.riwayat!['catatan'] ?? '';
+      _catatanController.text = catatan;
+      print('✅ Catatan: $catatan');
     }
   }
 
   @override
   void dispose() {
-    _tanggalController.dispose();
+    _namaController.dispose();
     _catatanController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF3A587A),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _tanggalController.text = _formatDate(picked);
-      });
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-  }
-
-  String? _validateTanggal(String? value) {
+  String? _validateNama(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Tanggal pengembalian wajib diisi';
+      return 'Nama peminjam wajib diisi';
     }
     return null;
   }
@@ -114,39 +94,92 @@ class _RiwayatDialogState extends State<RiwayatDialog> {
   Future<void> _saveRiwayat() async {
     setState(() => _errorMessage = null);
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      print('❌ Form validation failed');
+      return;
+    }
 
     if (_selectedKondisi == null) {
       setState(() => _errorMessage = 'Kondisi harus dipilih');
+      print('❌ Kondisi belum dipilih');
       return;
     }
 
     setState(() => _isLoading = true);
+    print('🔄 Memulai proses update...');
 
     try {
       if (widget.isEdit && widget.riwayat != null) {
-        final id = widget.riwayat!['id_pengembalian'] ??
-            widget.riwayat!['id'] ??
-            0;
-        final idPengembalian = id is String ? int.parse(id) : id as int;
+        // PERBAIKAN: Ambil id_peminjaman dari riwayat
+        final idPeminjaman = widget.riwayat!['id_peminjaman'];
+        final idPengembalian = widget.riwayat!['id_pengembalian'];
+        
+        print('📝 Data untuk update:');
+        print('  id_peminjaman: $idPeminjaman');
+        print('  id_pengembalian: $idPengembalian');
+        print('  kondisi terpilih: $_selectedKondisi');
+        print('  catatan: ${_catatanController.text.trim()}');
 
-        await _riwayatService.updatePengembalian(
-          idPengembalian: idPengembalian,
-          kondisiPengembalian: _selectedKondisi!,
-          catatan: _catatanController.text.trim(),
-          tglDikembalikan: _selectedDate,
-          keterlambatanHari: 0,
-        );
+        if (idPeminjaman == null) {
+          throw Exception('ID peminjaman tidak ditemukan');
+        }
 
-        if (!mounted) return;
+        final peminjamanId = idPeminjaman is String ? int.parse(idPeminjaman) : idPeminjaman as int;
 
+        // OPTION 1: Jika ada id_pengembalian, update langsung
+        if (idPengembalian != null) {
+          final pengembalianId = idPengembalian is String ? int.parse(idPengembalian) : idPengembalian as int;
+          print('🔄 Menggunakan updatePengembalian dengan ID: $pengembalianId');
+          
+          await _riwayatService.updatePengembalian(
+            idPengembalian: pengembalianId,
+            kondisiPengembalian: _selectedKondisi!,
+            catatan: _catatanController.text.trim(),
+          );
+        } 
+        // OPTION 2: Jika tidak ada id_pengembalian, coba update latest
+        else {
+          print('🔄 Menggunakan updateLatestPengembalian untuk peminjaman ID: $peminjamanId');
+          
+          await _riwayatService.updateLatestPengembalian(
+            idPeminjaman: peminjamanId,
+            kondisiPengembalian: _selectedKondisi!,
+            catatan: _catatanController.text.trim(),
+          );
+        }
+
+        if (!mounted) {
+          print('⚠️ Widget tidak mounted, tidak bisa navigasi');
+          return;
+        }
+
+        print('✅ Update berhasil, menutup dialog...');
         Navigator.of(context).pop(true);
-        widget.onSuccess?.call();
+        
+        if (widget.onSuccess != null) {
+          print('✅ Memanggil onSuccess callback');
+          widget.onSuccess!();
+        } else {
+          print('⚠️ onSuccess callback null');
+        }
 
-        SuccessPopup.show(context, 'Pengembalian berhasil diperbarui');
+        // Delay sedikit sebelum show popup untuk memastikan dialog tertutup
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        if (mounted) {
+          SuccessPopup.show(context, 'Pengembalian berhasil diperbarui');
+          print('✅ Success popup ditampilkan');
+        }
+      } else {
+        throw Exception('Data riwayat tidak valid untuk edit');
       }
     } catch (e) {
-      if (!mounted) return;
+      print('❌ Error saat save riwayat: $e');
+      
+      if (!mounted) {
+        print('⚠️ Widget tidak mounted, tidak bisa update UI');
+        return;
+      }
 
       String errorMsg = e.toString();
       if (errorMsg.startsWith('Exception: ')) {
@@ -158,10 +191,13 @@ class _RiwayatDialogState extends State<RiwayatDialog> {
         _errorMessage = errorMsg;
       });
 
+      print('❌ Error message: $errorMsg');
+
       // Auto clear error after 5 seconds
       Future.delayed(const Duration(seconds: 5), () {
         if (mounted && _errorMessage == errorMsg) {
           setState(() => _errorMessage = null);
+          print('ℹ️ Error message cleared');
         }
       });
     }
@@ -212,7 +248,7 @@ class _RiwayatDialogState extends State<RiwayatDialog> {
                     ),
                   ),
 
-                // Info nama user & alat (read-only)
+                // Info alat (read-only)
                 if (widget.isEdit && widget.riwayat != null) ...[
                   Container(
                     width: double.infinity,
@@ -226,37 +262,44 @@ class _RiwayatDialogState extends State<RiwayatDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Peminjam: ${widget.riwayat!['nama_user'] ?? '-'}',
+                          'Alat: ${widget.riwayat!['nama_alat'] ?? '-'}',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Alat: ${widget.riwayat!['nama_alat'] ?? '-'}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[700],
+                        if (widget.riwayat!['id_peminjaman'] != null)
+                          Text(
+                            'ID Peminjaman: ${widget.riwayat!['id_peminjaman']}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
                           ),
-                        ),
+                        if (widget.riwayat!['id_pengembalian'] != null)
+                          Text(
+                            'ID Pengembalian: ${widget.riwayat!['id_pengembalian']}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
                       ],
                     ),
                   ),
                 ],
 
-                // Tanggal Pengembalian
+                // Nama Peminjam (EDITABLE tapi disable untuk edit)
                 const Text(
-                  'Tanggal Pengembalian',
+                  'Nama Peminjam',
                   style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
-                  controller: _tanggalController,
-                  readOnly: true,
-                  onTap: _pickDate,
+                  controller: _namaController,
+                  enabled: !widget.isEdit, // Disable untuk edit mode
                   decoration: InputDecoration(
-                    hintText: 'Pilih tanggal',
+                    hintText: 'Masukkan nama peminjam',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -264,10 +307,9 @@ class _RiwayatDialogState extends State<RiwayatDialog> {
                       horizontal: 14,
                       vertical: 12,
                     ),
-                    suffixIcon:
-                        const Icon(Icons.calendar_today, size: 20),
+                    prefixIcon: const Icon(Icons.person, size: 20),
                   ),
-                  validator: _validateTanggal,
+                  validator: _validateNama,
                 ),
                 const SizedBox(height: 16),
 

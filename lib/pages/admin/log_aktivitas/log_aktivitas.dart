@@ -1,6 +1,7 @@
 import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 import 'log_aktivitas_card.dart';
+import 'package:aplikasi_peminjaman_alat/core/services/log_aktivitas_service.dart'; // Import service baru
 
 class LogAktivitas extends StatefulWidget {
   const LogAktivitas({super.key});
@@ -14,63 +15,54 @@ class _LogAktivitasState extends State<LogAktivitas> {
   final TextEditingController _searchController = TextEditingController();
 
   String selectedFilter = "Semua";
+  bool isLoading = true; // Tambah loading state
 
-  List<Map<String, dynamic>> aktivitasList = [
-    {
-      "id": "1",
-      "name": "Chelia",
-      "role": "samisama", // Menambahkan role
-      "status": "Peminjaman",
-      "alat": "Panci",
-      "jumlah": 1,
-      "alat_tambahan": true, // Untuk menampilkan alat kedua
-      "tanggal_pinjam": "2026-01-20",
-      "tanggal_kembali": "2026-01-24",
-      "disetujui_oleh": "Melati",
-    },
-    {
-      "id": "2",
-      "name": "Asel",
-      "role": "samisama", // Menambahkan role
-      "status": "Peminjaman",
-      "alat": "Panci",
-      "jumlah": 1,
-      "alat_tambahan": true,
-      "tanggal_pinjam": "2026-01-20",
-      "tanggal_kembali": "2026-01-24",
-      "disetujui_oleh": "Melati",
-    },
-    {
-      "id": "3",
-      "name": "Egi",
-      "role": "sangentadar", 
-      "status": "Pengembalian",
-      "alat": "Pisau",
-      "jumlah": 1,
-      "tanggal_pinjam": "2026-01-15",
-      "tanggal_kembali": "2026-01-20",
-      "disetujui_oleh": "Nadya",
-    },
-    {
-      "id": "4",
-      "name": "Melati",
-      "role": "admin", 
-      "status": "Peminjaman",
-      "alat": "Blow Torch",
-      "jumlah": 1,
-      "tanggal_pinjam": "2026-01-18",
-      "tanggal_kembali": "2026-01-22",
-      "disetujui_oleh": "Rotul",
-    },
-  ];
-
+  // List<Map<String, dynamic>> aktivitasList = []; // Data dummy dihapus
+  List<Map<String, dynamic>> aktivitasList = [];
   List<Map<String, dynamic>> filteredAktivitasList = [];
 
   @override
   void initState() {
     super.initState();
-    filteredAktivitasList = List.from(aktivitasList);
+    _loadAktivitas(); // Load data dari Supabase
     _searchController.addListener(_filterAktivitas);
+  }
+
+  // Fungsi untuk load data dari Supabase
+  Future<void> _loadAktivitas() async {
+    try {
+      // Gunakan salah satu method sesuai kebutuhan
+      final data = await LogAktivitasService.fetchLogAktivitasLengkap();
+      
+      setState(() {
+        aktivitasList = data;
+        filteredAktivitasList = List.from(aktivitasList);
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading aktivitas: $e');
+      setState(() {
+        isLoading = false;
+      });
+      
+      // Fallback ke data dummy jika error (opsional)
+      aktivitasList = [
+        {
+          "id": "1",
+          "name": "Chelia",
+          "role": "samisama",
+          "status": "Peminjaman",
+          "alat": "Panci",
+          "jumlah": 1,
+          "alat_tambahan": true,
+          "tanggal_pinjam": "2026-01-20",
+          "tanggal_kembali": "2026-01-24",
+          "disetujui_oleh": "Melati",
+        },
+        // ... data dummy lainnya
+      ];
+      filteredAktivitasList = List.from(aktivitasList);
+    }
   }
 
   @override
@@ -105,6 +97,14 @@ class _LogAktivitasState extends State<LogAktivitas> {
     });
   }
 
+  // Refresh data
+  Future<void> _refreshData() async {
+    setState(() {
+      isLoading = true;
+    });
+    await _loadAktivitas();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,117 +115,129 @@ class _LogAktivitasState extends State<LogAktivitas> {
       ),
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.only(top: 16, bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.menu, size: 32, color: Colors.black87),
-                    onPressed: () {
-                      _scaffoldKey.currentState?.openDrawer();
-                    },
-                  ),
-                  const SizedBox(width: 16),
-                  const Text(
-                    "Log Aktivitas",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+        child: RefreshIndicator(
+          onRefresh: _refreshData,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.menu, size: 32, color: Colors.black87),
+                      onPressed: () {
+                        _scaffoldKey.currentState?.openDrawer();
+                      },
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 25),
-
-            // Search Bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.black26),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, color: Colors.black54),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: "Search",
-                        border: InputBorder.none,
+                    const SizedBox(width: 16),
+                    const Text(
+                      "Log Aktivitas",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Filter Chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip("Semua"),
-                  const SizedBox(width: 8),
-                  _buildFilterChip("Peminjaman"),
-                  const SizedBox(width: 8),
-                  _buildFilterChip("Pengembalian"),
-                  const SizedBox(width: 8),
-                  _buildFilterChip("Menunggu"),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // List Aktivitas
-            if (filteredAktivitasList.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.history,
-                        size: 80,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _searchController.text.isEmpty
-                            ? 'Belum ada aktivitas'
-                            : 'Aktivitas tidak ditemukan',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
 
-            if (filteredAktivitasList.isNotEmpty)
-              Column(
-                children: filteredAktivitasList.map((aktivitas) {
-                  return LogAktivitasCard(
-                    aktivitas: aktivitas,
-                  );
-                }).toList(),
+              const SizedBox(height: 25),
+
+              // Search Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.black26),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Colors.black54),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          hintText: "Search",
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-          ],
-          
+
+              const SizedBox(height: 20),
+
+              // Filter Chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip("Semua"),
+                    const SizedBox(width: 8),
+                    _buildFilterChip("Peminjaman"),
+                    const SizedBox(width: 8),
+                    _buildFilterChip("Pengembalian"),
+                    const SizedBox(width: 8),
+                    _buildFilterChip("Menunggu"),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Loading indicator
+              if (isLoading)
+                const Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+
+              // List Aktivitas atau empty state
+              if (!isLoading && filteredAktivitasList.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.history,
+                          size: 80,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchController.text.isEmpty
+                              ? 'Belum ada aktivitas'
+                              : 'Aktivitas tidak ditemukan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              if (!isLoading && filteredAktivitasList.isNotEmpty)
+                Column(
+                  children: filteredAktivitasList.map((aktivitas) {
+                    return LogAktivitasCard(
+                      aktivitas: aktivitas,
+                      showActionButton: false, // Nonaktifkan tombol untuk data real
+                    );
+                  }).toList(),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,4 @@
-import 'package:aplikasi_peminjaman_alat/core/services/pemijaman_user_service.dart';
+import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengembalian/pengembalian_peminjam_page.dart';
 import 'package:flutter/material.dart';
 
 class PengajuanCard extends StatefulWidget {
@@ -16,9 +16,7 @@ class PengajuanCard extends StatefulWidget {
 }
 
 class _PengajuanCardState extends State<PengajuanCard> {
-  final PeminjamanUserService _peminjamanUserService = PeminjamanUserService();
   bool expand = false;
-  bool _isSubmitting = false;
 
   Color statusColor(String s) {
     switch (s) {
@@ -30,90 +28,30 @@ class _PengajuanCardState extends State<PengajuanCard> {
         return Colors.teal;
       case 'Ditolak':
         return Colors.red;
+      case 'Menunggu Pengembalian':
+        return Colors.orange;
       default:
         return Colors.grey;
     }
   }
 
-  Future<void> _handleAjukanPengembalian() async {
-    final idPeminjaman = widget.data['id_peminjaman'] as int;
-
-    // Konfirmasi
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Konfirmasi'),
-        content: const Text('Apakah Anda yakin ingin mengajukan pengembalian?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xff36536B),
-            ),
-            child: const Text(
-              'Ya, Ajukan',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
+  void _navigasiKePengembalian() {
+    // Navigasi ke halaman pengembalian tanpa kirim data dulu
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PengembaliaPeminjamnPage(),
       ),
     );
-
-    if (confirm != true) return;
-
-    setState(() {
-      _isSubmitting = true;
-    });
-
-    try {
-      final success = await _peminjamanUserService.ajukanPengembalian(idPeminjaman);
-
-      if (mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Pengembalian berhasil diajukan'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          widget.onRefresh();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gagal mengajukan pengembalian'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final status = widget.data['status'];
-    final alat = widget.data['alat'] ?? {};
-    final tgl = widget.data['tanggal'];
-    final kembali = widget.data['tanggal_pengembalian'];
+    // Fix null safety untuk semua field
+    final status = widget.data['status_peminjaman'] as String? ?? 'Menunggu';
+    final alat = widget.data['alat'] as Map<String, dynamic>? ?? {};
+    final tgl = widget.data['tanggal'] as String? ?? '-';
+    final kembali = widget.data['tanggal_pengembalian'] as String?;
 
     return GestureDetector(
       onTap: () => setState(() => expand = !expand),
@@ -189,7 +127,7 @@ class _PengajuanCardState extends State<PengajuanCard> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    alat.keys.join(', '),
+                    alat.keys.isEmpty ? '-' : alat.keys.join(', '),
                     style: const TextStyle(fontSize: 12),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -207,27 +145,27 @@ class _PengajuanCardState extends State<PengajuanCard> {
                 ),
                 child: Column(
                   children: [
-                    ...alat.entries.map(
-                      (e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(e.key, style: const TextStyle(fontSize: 12)),
-                            Text('${e.value}',
-                                style: const TextStyle(fontSize: 12)),
-                          ],
+                    if (alat.isNotEmpty)
+                      ...alat.entries.map(
+                        (e) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(e.key, style: const TextStyle(fontSize: 12)),
+                              Text('${e.value}',
+                                  style: const TextStyle(fontSize: 12)),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    if (kembali != null) ...[
+                    if (kembali != null && kembali.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Text(
                             'Tanggal Pengembalian',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.grey),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -248,31 +186,24 @@ class _PengajuanCardState extends State<PengajuanCard> {
               ),
             ],
 
+            // Button hanya muncul jika status Disetujui
+            // PERBAIKAN: Hanya navigasi, tidak kirim data
             if (status == 'Disetujui') ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _handleAjukanPengembalian,
+                  onPressed: _navigasiKePengembalian,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xff36536B),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Ajukan Pengembalian',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                  child: const Text(
+                    'Ajukan Pengembalian',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
             ],

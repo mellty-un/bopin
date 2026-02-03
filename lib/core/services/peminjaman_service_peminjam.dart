@@ -41,7 +41,30 @@ class PeminjamanServicePeminjam {
 
       final userName = await getCurrentUserName();
 
-      // 1. Insert ke tabel peminjaman
+      // 1. Validasi stok tersedia sebelum ajukan peminjaman
+      for (var entry in alatDanJumlah.entries) {
+        final idAlat = entry.key;
+        final jumlahPinjam = entry.value;
+
+        // Ambil stok tersedia saat ini
+        final alatResponse = await _supabase
+            .from('alat')
+            .select('stok_tersedia, nama_alat')
+            .eq('id_alat', idAlat)
+            .single();
+
+        final stokTersedia = alatResponse['stok_tersedia'] as int;
+        final namaAlat = alatResponse['nama_alat'] as String;
+
+        // Validasi stok cukup
+        if (stokTersedia < jumlahPinjam) {
+          throw Exception(
+            'Stok $namaAlat tidak mencukupi. Tersedia: $stokTersedia, Diminta: $jumlahPinjam'
+          );
+        }
+      }
+
+      // 2. Insert ke tabel peminjaman dengan status Menunggu
       final peminjamanResponse = await _supabase
           .from('peminjaman')
           .insert({
@@ -56,7 +79,7 @@ class PeminjamanServicePeminjam {
 
       final idPeminjaman = peminjamanResponse['id_peminjaman'] as int;
 
-      // 2. Insert detail peminjaman untuk setiap alat
+      // 3. Insert detail peminjaman untuk setiap alat
       final detailList = alatDanJumlah.entries.map((entry) {
         return {
           'id_peminjaman': idPeminjaman,
@@ -67,27 +90,9 @@ class PeminjamanServicePeminjam {
 
       await _supabase.from('detail_peminjaman').insert(detailList);
 
-      // 3. Update stok_tersedia untuk setiap alat (kurangi stok)
-      for (var entry in alatDanJumlah.entries) {
-        final idAlat = entry.key;
-        final jumlahPinjam = entry.value;
-
-        // Ambil stok tersedia saat ini
-        final alatResponse = await _supabase
-            .from('alat')
-            .select('stok_tersedia')
-            .eq('id_alat', idAlat)
-            .single();
-
-        final stokTersedia = alatResponse['stok_tersedia'] as int;
-        final stokBaru = stokTersedia - jumlahPinjam;
-
-        // Update stok
-        await _supabase
-            .from('alat')
-            .update({'stok_tersedia': stokBaru})
-            .eq('id_alat', idAlat);
-      }
+      // PENTING: TIDAK MENGURANGI STOK DI SINI
+      // Stok akan dikurangi saat peminjaman disetujui oleh petugas
+      // di PeminjamanService.updateStatus()
 
       // 4. Log aktivitas
       await _supabase.from('log_aktivitas').insert({
@@ -99,7 +104,7 @@ class PeminjamanServicePeminjam {
       return true;
     } catch (e) {
       print('Error ajukan peminjaman: $e');
-      return false;
+      rethrow; // throw ulang error agar bisa ditangkap di UI
     }
   }
 
@@ -152,7 +157,7 @@ class PeminjamanServicePeminjam {
         result.add({
           'id_peminjaman': peminjaman['id_peminjaman'],
           'tanggal': _formatTanggal(peminjaman['tgl_pinjam']),
-          'status': peminjaman['status'],
+          'status_peminjaman': peminjaman['status'], // ubah key jadi status_peminjaman
           'alat': alatMap,
           'tanggal_pengembalian': peminjaman['tgl_kembali'] != null 
               ? _formatTanggal(peminjaman['tgl_kembali']) 
@@ -180,60 +185,52 @@ class PeminjamanServicePeminjam {
   // Ajukan pengembalian
   Future<bool> ajukanPengembalian(int idPeminjaman) async {
     try {
-      // Update status peminjaman menjadi 'Dikembalikan'
+      final userId = getCurrentUserId();
+      if (userId == null) {
+        throw Exception('User tidak terautentikasi');
+      }
+
+      // Cek status peminjaman saat ini
+      final peminjamanData = await _supabase
+          .from('peminjaman')
+          .select('status')
+          .eq('id_peminjaman', idPeminjaman)
+          .single();
+
+      final statusSekarang = peminjamanData['status'] as String;
+
+      // Hanya bisa ajukan pengembalian jika status Disetujui
+      if (statusSekarang != 'Disetujui') {
+        throw Exception('Hanya peminjaman yang sudah disetujui yang bisa dikembalikan');
+      }
+
+      // Update status peminjaman menjadi 'Menunggu Pengembalian'
       await _supabase
           .from('peminjaman')
-          .update({'status': 'Dikembalikan'})
+          .update({'status': 'Menunggu Pengembalian'})
           .eq('id_peminjaman', idPeminjaman);
 
-      // Insert ke tabel pengembalian
+      // Insert ke tabel pengembalian dengan status menunggu
       await _supabase.from('pengembalian').insert({
         'id_peminjaman': idPeminjaman,
         'tgl_dikembalikan': DateTime.now().toIso8601String().split('T')[0],
         'kondisi_pengembalian': 'Baik',
         'keterlambatan_hari': 0,
-        'catatan': 'Pengembalian diajukan oleh peminjam',
+        'catatan': 'Pengembalian diajukan oleh peminjam, menunggu konfirmasi petugas',
       });
 
-      // Kembalikan stok
-      final detailResponse = await _supabase
-          .from('detail_peminjaman')
-          .select('id_alat, jumlah_pinjam')
-          .eq('id_peminjaman', idPeminjaman);
-
-      for (var detail in detailResponse) {
-        final idAlat = detail['id_alat'] as int;
-        final jumlahPinjam = detail['jumlah_pinjam'] as int;
-
-        final alatResponse = await _supabase
-            .from('alat')
-            .select('stok_tersedia')
-            .eq('id_alat', idAlat)
-            .single();
-
-        final stokTersedia = alatResponse['stok_tersedia'] as int;
-        final stokBaru = stokTersedia + jumlahPinjam;
-
-        await _supabase
-            .from('alat')
-            .update({'stok_tersedia': stokBaru})
-            .eq('id_alat', idAlat);
-      }
-
+    
       // Log aktivitas
-      final userId = getCurrentUserId();
-      if (userId != null) {
-        await _supabase.from('log_aktivitas').insert({
-          'id_user': userId,
-          'aktivitas': 'Mengajukan pengembalian untuk peminjaman ID: $idPeminjaman',
-          'waktu': DateTime.now().toIso8601String(),
-        });
-      }
+      await _supabase.from('log_aktivitas').insert({
+        'id_user': userId,
+        'aktivitas': 'Mengajukan pengembalian untuk peminjaman ID: $idPeminjaman',
+        'waktu': DateTime.now().toIso8601String(),
+      });
 
       return true;
     } catch (e) {
       print('Error ajukan pengembalian: $e');
-      return false;
+      rethrow; // throw ulang error agar bisa ditangkap di UI
     }
   }
 }

@@ -20,7 +20,7 @@ class PengembalianPeminamCard extends StatelessWidget {
     final isMenunggu = status == "Menunggu";
 
     return InkWell(
-      onTap: (isSelesai || isMenunggu) ? null : onTap, // disable jika sudah Selesai / Menunggu
+      onTap: onTap, // onTap sudah dihandle di parent, UI tetap sama
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(14),

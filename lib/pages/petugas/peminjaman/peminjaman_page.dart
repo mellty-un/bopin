@@ -28,6 +28,7 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
   }
 
   Future<void> _loadPeminjaman() async {
+    setState(() => isLoading = true);
     try {
       final result = await PeminjamanService.fetchPeminjaman();
       setState(() {
@@ -73,9 +74,12 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
       debugPrint('Gagal update status: $e');
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Gagal mengubah status')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengubah status: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -93,7 +97,7 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
             top: screenHeight * 0.1,
             bottom: screenHeight * 0.05,
           ),
-          child: SideBar(currentPage: "PeminjamanPetugas"),
+          child: const SideBar(currentPage: "PeminjamanPetugas"),
         ),
       ),
       backgroundColor: Colors.white,
@@ -183,11 +187,15 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
                         Icons.keyboard_arrow_down,
                         size: isSmallScreen ? 16 : 18,
                       ),
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 11 : 12,
+                        color: Colors.black,
+                      ),
                       items: const [
                         DropdownMenuItem(value: 'Semua', child: Text('Semua')),
                         DropdownMenuItem(
-                          value: 'Pengajuan',
-                          child: Text('Pengajuan'),
+                          value: 'Menunggu',
+                          child: Text('Menunggu'),
                         ),
                         DropdownMenuItem(
                           value: 'Disetujui',
@@ -196,6 +204,10 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
                         DropdownMenuItem(
                           value: 'Ditolak',
                           child: Text('Ditolak'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Menunggu Pengembalian',
+                          child: Text('Menunggu Pengembalian'),
                         ),
                         DropdownMenuItem(
                           value: 'Dikembalikan',
@@ -217,37 +229,40 @@ class _PeminjamanPageState extends State<PeminjamanPage> {
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : filteredData.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Tidak ada data peminjaman',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadPeminjaman,
-                        child: ListView.builder(
-                          itemCount: filteredData.length,
-                          itemBuilder: (context, index) {
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                bottom: isSmallScreen ? 8 : 12,
-                              ),
-                              child: PeminjamanCard(
-                                model: filteredData[index],
-                                onUpdate: (newStatus) async {
-                                  // update status di list lokal agar UI langsung berubah
-                                  setState(() {
-                                    filteredData[index].status = newStatus;
-                                  });
+                        ? Center(
+                            child: Text(
+                              filter == 'Semua'
+                                  ? 'Tidak ada data peminjaman'
+                                  : 'Tidak ada peminjaman dengan status $filter',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadPeminjaman,
+                            child: ListView.builder(
+                              itemCount: filteredData.length,
+                              itemBuilder: (context, index) {
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: isSmallScreen ? 8 : 12,
+                                  ),
+                                  child: PeminjamanCard(
+                                    model: filteredData[index],
+                                    onUpdate: (newStatus) async {
+                                      // update status di list lokal agar UI langsung berubah
+                                      setState(() {
+                                        filteredData[index].status = newStatus;
+                                      });
 
-                                  // reload list dari Supabase agar sinkron
-                                  await _loadPeminjaman();
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                                      // reload list dari Supabase agar sinkron
+                                      await _loadPeminjaman();
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
               ),
             ],
           ),

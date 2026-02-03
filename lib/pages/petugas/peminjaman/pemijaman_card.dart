@@ -27,6 +27,7 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
     if (s == 'Ditolak') return const Color(0xffEF4444);
     if (s == 'Menunggu') return const Color(0xffFACC15);
     if (s == 'Dikembalikan') return const Color(0xff3B82F6);
+    if (s == 'Menunggu Pengembalian') return const Color(0xffFF9800);
     return const Color(0xff9CA3AF);
   }
 
@@ -62,25 +63,27 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 /// Nama & tanggal
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      model.nama,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        model.nama,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      model.tanggal,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF666666),
+                      const SizedBox(height: 4),
+                      Text(
+                        model.tanggal,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF666666),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
 
                 /// Action / Status
@@ -96,7 +99,8 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
                           : Row(
                               children: [
                                 IconButton(
-                                  onPressed: () => _showConfirmationDialog(true),
+                                  onPressed: () =>
+                                      _showConfirmationDialog(true),
                                   icon: const Icon(
                                     Icons.check_circle,
                                     color: Color(0xff22C55E),
@@ -107,7 +111,8 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
                                 ),
                                 const SizedBox(width: 8),
                                 IconButton(
-                                  onPressed: () => _showConfirmationDialog(false),
+                                  onPressed: () =>
+                                      _showConfirmationDialog(false),
                                   icon: const Icon(
                                     Icons.cancel,
                                     color: Color(0xffEF4444),
@@ -144,14 +149,15 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [
-                        Text(
-                          e.key,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF666666),
+                        Expanded(
+                          child: Text(
+                            e.key,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF666666),
+                            ),
                           ),
                         ),
-                        const Spacer(),
                         Text(
                           '${e.value}',
                           style: const TextStyle(
@@ -169,7 +175,7 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
                   style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
                 ),
 
-              if ((model.kembali ?? '').isNotEmpty) ...[
+              if (model.kembali != null && model.kembali!.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
                   'Kembali : ${model.kembali}',
@@ -232,22 +238,38 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
                 widget.onUpdate(newStatus);
 
                 // tampilkan popup sukses
-                SuccessPopup.show(context, 'Status berhasil diubah');
+                if (mounted) {
+                  SuccessPopup.show(
+                    context,
+                    approve
+                        ? 'Peminjaman disetujui'
+                        : 'Peminjaman ditolak',
+                  );
+                }
               } catch (e) {
                 debugPrint('Gagal update status: $e');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Gagal update status')),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal update status: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               } finally {
-                setState(() => loadingUpdate = false);
+                if (mounted) {
+                  setState(() => loadingUpdate = false);
+                }
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: approve
-                  ? const Color(0xff22C55E)
-                  : const Color(0xffEF4444),
+              backgroundColor:
+                  approve ? const Color(0xff22C55E) : const Color(0xffEF4444),
             ),
-            child: const Text('Ya'),
+            child: const Text(
+              'Ya',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

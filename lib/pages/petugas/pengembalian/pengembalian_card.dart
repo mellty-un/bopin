@@ -6,7 +6,7 @@ class PengembalianCard extends StatelessWidget {
   final String tanggal; 
   final String status;
   final VoidCallback onTap;
-  final List<DetailPeminjaman> alatList; // <-- ubah disini
+  final List<DetailPeminjaman> alatList;
   final String tanggalPeminjaman;
   final String tanggalPengembalian;
   final String tanggalDikembalikan;

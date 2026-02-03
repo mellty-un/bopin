@@ -116,13 +116,13 @@ class LaporanCard extends StatelessWidget {
           const SizedBox(height: 12),
 Center(
   child: ElevatedButton.icon(
-    onPressed: () {
-      LaporanPdf.printLaporan(laporan); // panggil PDF
+    onPressed: () async {
+      await LaporanStruk.printStruk(laporan); 
     },
     icon: const Icon(Icons.print, size: 16),
     label: const Text('Print Report'),
     style: ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF4A6FA5),
+      backgroundColor: const Color(0xFF4A6FA5), // biru gelap
       foregroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       textStyle: const TextStyle(fontSize: 13),
@@ -132,6 +132,7 @@ Center(
     ),
   ),
 ),
+
         ],
       ),
     );

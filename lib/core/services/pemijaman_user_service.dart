@@ -68,8 +68,7 @@ class PeminjamanUserService {
 
       await _supabase.from('detail_peminjaman').insert(detailList);
 
-      // 3. Update stok_tersedia untuk setiap alat (kurangi stok)
-      // STOK DIKURANGI DI SINI - SAAT USER AJUKAN PEMINJAMAN
+      // 3. Update stok_tersedia untuk setiap alat (kurangi stok) - PERBAIKAN DI SINI
       for (var entry in alatDanJumlah.entries) {
         final idAlat = entry.key;
         final jumlahPinjam = entry.value;
@@ -109,7 +108,7 @@ class PeminjamanUserService {
     }
   }
 
-  // Mendapatkan semua peminjaman user yang sedang login
+  // SOLUSI SIMPLE: Ambil peminjaman tanpa join ke pengembalian
   Future<List<Map<String, dynamic>>> getPeminjamanByUser() async {
     try {
       final userId = getCurrentUserId();
@@ -117,7 +116,7 @@ class PeminjamanUserService {
         throw Exception('User tidak terautentikasi');
       }
 
-      // Ambil data peminjaman dengan detail alat
+      // 1. Ambil data peminjaman saja tanpa pengembalian
       final response = await _supabase
           .from('peminjaman')
           .select('''
@@ -128,15 +127,46 @@ class PeminjamanUserService {
             detail_peminjaman(
               id_alat,
               jumlah_pinjam,
-              alat(
-                nama_alat
-              )
+              alat!inner(nama_alat)
             )
           ''')
           .eq('id_user', userId)
           .order('id_peminjaman', ascending: false);
 
-      // Format data untuk UI
+      // 2. Ambil semua ID peminjaman untuk query pengembalian terpisah
+      final List<int> idsPeminjaman = [];
+      for (var peminjaman in response) {
+        idsPeminjaman.add(peminjaman['id_peminjaman'] as int);
+      }
+
+      // 3. Ambil semua pengembalian dengan OR filter
+      Map<int, Map<String, dynamic>> pengembalianMap = {};
+      if (idsPeminjaman.isNotEmpty) {
+        // Buat filter OR string
+        String orFilter = '';
+        for (int i = 0; i < idsPeminjaman.length; i++) {
+          if (i > 0) orFilter += ',';
+          orFilter += 'id_peminjaman.eq.${idsPeminjaman[i]}';
+        }
+
+        final pengembalianResponse = await _supabase
+            .from('pengembalian')
+            .select('id_pengembalian, id_peminjaman, tgl_dikembalikan, kondisi_pengembalian, keterlambatan_hari, catatan')
+            .or(orFilter);
+
+        // Masukkan ke map untuk pencarian cepat
+        for (var p in pengembalianResponse) {
+          pengembalianMap[p['id_peminjaman'] as int] = {
+            'id_pengembalian': p['id_pengembalian'],
+            'tgl_dikembalikan': p['tgl_dikembalikan'],
+            'kondisi_pengembalian': p['kondisi_pengembalian'],
+            'keterlambatan_hari': p['keterlambatan_hari'],
+            'catatan': p['catatan'],
+          };
+        }
+      }
+
+      // 4. Format data untuk UI
       List<Map<String, dynamic>> result = [];
       
       for (var peminjaman in response) {
@@ -148,21 +178,34 @@ class PeminjamanUserService {
           final namaAlat = detail['alat']['nama_alat'] as String;
           final jumlah = detail['jumlah_pinjam'] as int;
           
-          if (alatMap.containsKey(namaAlat)) {
-            alatMap[namaAlat] += jumlah;
-          } else {
-            alatMap[namaAlat] = jumlah;
-          }
+          alatMap[namaAlat] = (alatMap[namaAlat] ?? 0) + jumlah;
+        }
+
+        // Tentukan status pengembalian
+        final int idPeminjaman = peminjaman['id_peminjaman'] as int;
+        final bool adaPengembalian = pengembalianMap.containsKey(idPeminjaman);
+        final String statusPeminjaman = peminjaman['status'] as String;
+        
+        String statusPengembalian = "Belum";
+        
+        if (statusPeminjaman == 'Menunggu Pengembalian') {
+          statusPengembalian = "Menunggu";
+        } else if (statusPeminjaman == 'Dikembalikan') {
+          statusPengembalian = "Selesai";
+        } else if (statusPeminjaman == 'Disetujui' && adaPengembalian) {
+          statusPengembalian = "Menunggu";
         }
 
         result.add({
-          'id_peminjaman': peminjaman['id_peminjaman'],
-          'tanggal': _formatTanggal(peminjaman['tgl_pinjam']),
-          'status': peminjaman['status'],
+          'id_peminjaman': idPeminjaman,
+          'tanggal': _formatTanggal(peminjaman['tgl_pinjam'] as String),
+          'status_pengembalian': statusPengembalian,
+          'status_peminjaman': statusPeminjaman,
           'alat': alatMap,
           'tanggal_pengembalian': peminjaman['tgl_kembali'] != null 
-              ? _formatTanggal(peminjaman['tgl_kembali']) 
+              ? _formatTanggal(peminjaman['tgl_kembali'] as String) 
               : null,
+          'data_pengembalian': adaPengembalian ? pengembalianMap[idPeminjaman] : null,
         });
       }
 
@@ -182,50 +225,66 @@ class PeminjamanUserService {
       return tanggal;
     }
   }
-Future<bool> ajukanPengembalian(
-  int idPeminjaman, {
-  DateTime? tanggalDikembalikan,
-}) async {
-  try {
-    if (idPeminjaman <= 0) {
-      throw Exception("ID peminjaman tidak valid");
+
+  // PERBAIKAN: Ajukan pengembalian dengan validasi stok
+  Future<bool> ajukanPengembalian(
+    int idPeminjaman, {
+    DateTime? tanggalDikembalikan,
+  }) async {
+    try {
+      if (idPeminjaman <= 0) {
+        throw Exception("ID peminjaman tidak valid");
+      }
+
+      final tanggal = tanggalDikembalikan ?? DateTime.now();
+
+      // 1️⃣ Update status di tabel peminjaman
+      await _supabase
+          .from('peminjaman')
+          .update({'status': 'Menunggu Pengembalian'})
+          .eq('id_peminjaman', idPeminjaman);
+
+      // 2️⃣ Cek apakah sudah ada record pengembalian
+      final existingPengembalian = await _supabase
+          .from('pengembalian')
+          .select('id_pengembalian')
+          .eq('id_peminjaman', idPeminjaman)
+          .maybeSingle();
+
+      if (existingPengembalian == null) {
+        // Insert record pengembalian baru
+        await _supabase.from('pengembalian').insert({
+          'id_peminjaman': idPeminjaman,
+          'tgl_dikembalikan': tanggal.toIso8601String().split('T')[0],
+          'kondisi_pengembalian': 'Baik', // Default
+          'keterlambatan_hari': 0, // Akan dihitung oleh petugas
+          'catatan': 'Diajukan oleh peminjam',
+        });
+      } else {
+        // Update record pengembalian yang sudah ada
+        await _supabase
+            .from('pengembalian')
+            .update({
+              'tgl_dikembalikan': tanggal.toIso8601String().split('T')[0],
+              'catatan': 'Diajukan ulang oleh peminjam',
+            })
+            .eq('id_peminjaman', idPeminjaman);
+      }
+
+      // 3️⃣ Log aktivitas user
+      final userId = getCurrentUserId();
+      if (userId != null) {
+        await _supabase.from('log_aktivitas').insert({
+          'id_user': userId,
+          'aktivitas': 'Mengajukan pengembalian ID $idPeminjaman',
+          'waktu': DateTime.now().toIso8601String(),
+        });
+      }
+
+      return true;
+    } catch (e) {
+      print('❌ Error ajukan pengembalian: $e');
+      return false;
     }
-
-    final tanggal = tanggalDikembalikan ?? DateTime.now();
-
-    // 1️⃣ Update status di tabel peminjaman
-    await _supabase
-        .from('peminjaman')
-        .update({'status': 'Menunggu Pengembalian'})
-        .eq('id_peminjaman', idPeminjaman);
-
-    // 2️⃣ Insert record pengembalian
-    await _supabase.from('pengembalian').insert({
-      'id_peminjaman': idPeminjaman,
-      'tgl_dikembalikan': tanggal.toIso8601String().split('T')[0],
-      // 'catatan' ada di DB, cukup tulis pesan
-      'catatan': 'Diajukan oleh peminjam',
-      // jangan masukkan status_pengembalian karena kolom itu tidak ada
-    });
-
-    // 3️⃣ Log aktivitas user
-    final userId = getCurrentUserId();
-    if (userId != null) {
-      await _supabase.from('log_aktivitas').insert({
-        'id_user': userId,
-        'aktivitas': 'Mengajukan pengembalian ID $idPeminjaman',
-        'waktu': DateTime.now().toIso8601String(),
-      });
-    }
-
-    return true;
-  } catch (e) {
-    print('❌ Error ajukan pengembalian: $e');
-    return false;
   }
-}
-
-
-
-
 }

@@ -1,8 +1,7 @@
 import 'package:aplikasi_peminjaman_alat/core/services/pemijaman_user_service.dart';
 import 'package:aplikasi_peminjaman_alat/models/detail_peminjaman_model.dart';
-import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengembalian/pengembalaian_peminjaman_cart.dart';
+import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengembalian/pengembalaian_peminjaman_card.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengembalian/pengembalian_peminjaman_dialog.dart';
-import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_dialog.dart';
 import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:flutter/material.dart';
 
@@ -32,20 +31,33 @@ class _PengembaliaPeminjamnPageState extends State<PengembaliaPeminjamnPage> {
   }
 
   Future<void> loadData() async {
+    setState(() => loading = true);
     try {
       final result = await _service.getPeminjamanByUser();
+      
+      // PERBAIKAN: Filter hanya yang statusnya Disetujui atau sudah ada pengembalian
+      final filteredResult = result.where((e) {
+        final statusPeminjaman = e['status_peminjaman'] as String;
+        return statusPeminjaman == 'Disetujui' || 
+               statusPeminjaman == 'Menunggu Pengembalian' ||
+               statusPeminjaman == 'Dikembalikan';
+      }).toList();
+
       setState(() {
-        data = result;
+        data = filteredResult;
         loading = false;
       });
     } catch (e) {
-      loading = false;
+      print('Error loading data: $e');
+      setState(() => loading = false);
     }
   }
 
   List<Map<String, dynamic>> get filtered {
     if (selectedFilter == "Semua") return data;
-    return data.where((e) => e["status"] == selectedFilter).toList();
+    
+    // PERBAIKAN: Filter berdasarkan status_pengembalian
+    return data.where((e) => e["status_pengembalian"] == selectedFilter).toList();
   }
 
   @override
@@ -89,7 +101,7 @@ class _PengembaliaPeminjamnPageState extends State<PengembaliaPeminjamnPage> {
 
               const SizedBox(height: 20),
 
-              /// SEARCH (UI TETAP)
+              /// SEARCH
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -97,15 +109,17 @@ class _PengembaliaPeminjamnPageState extends State<PengembaliaPeminjamnPage> {
                   border: Border.all(color: Colors.black26),
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.search, color: Colors.black54),
-                    SizedBox(width: 10),
+                  children: [
+                    const Icon(Icons.search, color: Colors.black54),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: TextField(
-                        decoration: InputDecoration(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
                           hintText: "Search",
                           border: InputBorder.none,
                         ),
+                        onChanged: (value) => setState(() {}),
                       ),
                     ),
                   ],
@@ -119,7 +133,9 @@ class _PengembaliaPeminjamnPageState extends State<PengembaliaPeminjamnPage> {
                 children: [
                   filter("Semua"),
                   const SizedBox(width: 8),
-                  filter("Pengembalian"),
+                  filter("Belum"),
+                  const SizedBox(width: 8),
+                  filter("Menunggu"),
                   const SizedBox(width: 8),
                   filter("Selesai"),
                 ],
@@ -130,6 +146,16 @@ class _PengembaliaPeminjamnPageState extends State<PengembaliaPeminjamnPage> {
               /// LIST
               if (loading)
                 const Center(child: CircularProgressIndicator())
+              else if (filtered.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      "Tidak ada data pengembalian",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
               else
                 ListView(
                   shrinkWrap: true,
@@ -150,43 +176,68 @@ class _PengembaliaPeminjamnPageState extends State<PengembaliaPeminjamnPage> {
                       });
                     }
 
-                  return PengembalianPeminamCard(
-  tanggal: e["tanggal"],
-  status: e["status"],
-  totalAlat: alatList.length,
-  onTap: (e["status"] == "Selesai" || e["status"] == "Menunggu")
-      ? null // tidak bisa klik
-      : () {
-          showDialog(
-            context: context,
-            builder: (_) => PengembalianPeminjamDetailDialog(
-              id: e["id_peminjaman"].toString(),
-              nama: "Peminjam",
-              tanggalDiajukan: e["tanggal"],
-              status: e["status"],
-              alatList: alatList,
-              tanggalPeminjaman: e["tanggal"],
-              tanggalPengembalian: e["tanggal_pengembalian"] ?? "-",
-              onAjukanSuccess: (pickedTanggal) async {
-                // Panggil service untuk ajukan pengembalian
-                await PeminjamanUserService().ajukanPengembalian(
-                  e["id_peminjaman"],
-                  tanggalDikembalikan: pickedTanggal,
-                );
+                    return PengembalianPeminamCard(
+                      tanggal: e["tanggal"],
+                      status: e["status_pengembalian"], // PERBAIKAN: Gunakan status_pengembalian
+                      totalAlat: alatList.length,
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => PengembalianPeminjamDetailDialog(
+                            id: e["id_peminjaman"].toString(),
+                            nama: "Peminjaman",
+                            tanggalDiajukan: e["tanggal"],
+                            status: e["status_pengembalian"], // PERBAIKAN: Gunakan status_pengembalian
+                            alatList: alatList,
+                            tanggalPeminjaman: e["tanggal"],
+                            tanggalPengembalian:
+                                e["tanggal_pengembalian"] ?? "-",
+                            onAjukanSuccess: (pickedTanggal) async {
+                              // Panggil service untuk ajukan pengembalian
+                              final success = await PeminjamanUserService()
+                                  .ajukanPengembalian(
+                                e["id_peminjaman"],
+                                tanggalDikembalikan: pickedTanggal,
+                              );
 
-                // Update status lokal agar card berubah jadi "Menunggu"
-                setState(() {
-                  e["status"] = "Menunggu";
-                });
+                              if (success) {
+                                // Update status lokal agar card berubah jadi "Menunggu"
+                                setState(() {
+                                  e["status_pengembalian"] = "Menunggu";
+                                });
 
-                loadData();
-              },
-            ),
-          );
-        },
-);
+                                // Reload data dari server
+                                loadData();
 
-
+                                // Tampilkan snackbar sukses
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Pengembalian berhasil diajukan'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } else {
+                                // Tampilkan snackbar error
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Gagal mengajukan pengembalian'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    );
                   }).toList(),
                 ),
             ],

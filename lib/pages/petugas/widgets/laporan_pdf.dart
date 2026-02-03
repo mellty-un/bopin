@@ -5,66 +5,83 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-class LaporanPdf {
-  static Future<void> printLaporan(LaporanModel laporan) async {
+class LaporanStruk {
+  static Future<void> printStruk(LaporanModel laporan) async {
     final pdf = pw.Document();
-    final dateFormat = DateFormat('dd/MM/yyyy');
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+
+    // Ukuran thermal printer 58mm, panjang fleksibel
+    final pageFormat = PdfPageFormat(58 * PdfPageFormat.mm, double.infinity,
+        marginAll: 2);
 
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
+        pageFormat: pageFormat,
         build: (context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('Laporan Peminjaman',
-                  style: pw.TextStyle(
-                      fontSize: 20, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 10),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Nama: ${laporan.nama}',
-                      style: pw.TextStyle(fontSize: 14)),
-                  pw.Text('Status: ${laporan.status}',
-                      style: pw.TextStyle(fontSize: 14)),
-                ],
+              // HEADER
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text('TOKO ALAT ABC',
+                        style: pw.TextStyle(
+                            fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Jl. Contoh No.123',
+                        style: pw.TextStyle(fontSize: 8)),
+                    pw.SizedBox(height: 5),
+                  ],
+                ),
               ),
-              pw.SizedBox(height: 10),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Mulai: ${dateFormat.format(laporan.mulai)}',
-                      style: pw.TextStyle(fontSize: 12)),
-                  pw.Text('Kembali: ${dateFormat.format(laporan.kembali)}',
-                      style: pw.TextStyle(fontSize: 12)),
-                  if (laporan.dikembalikan != null)
-                    pw.Text(
-                        'Dikembalikan: ${dateFormat.format(laporan.dikembalikan!)}',
-                        style: pw.TextStyle(fontSize: 12)),
-                ],
-              ),
-              pw.SizedBox(height: 12),
               pw.Divider(),
-              pw.SizedBox(height: 8),
-              pw.Text('Alat:',
-                  style: pw.TextStyle(
-                      fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 6),
-              pw.Column(
-                children: laporan.items.map((alat) {
-                  return pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text(alat.namaAlat,
-                          style: const pw.TextStyle(fontSize: 12)),
-                      pw.Text('${alat.jumlah} pcs',
-                          style: const pw.TextStyle(fontSize: 12)),
-                    ],
-                  );
-                }).toList(),
+
+              // INFO PEMINJAM
+              pw.Text('Nama : ${laporan.nama}', style: pw.TextStyle(fontSize: 8)),
+              pw.Text('Status : ${laporan.status}', style: pw.TextStyle(fontSize: 8)),
+              pw.Text('Mulai : ${dateFormat.format(laporan.mulai)}',
+                  style: pw.TextStyle(fontSize: 8)),
+              pw.Text('Kembali : ${dateFormat.format(laporan.kembali)}',
+                  style: pw.TextStyle(fontSize: 8)),
+              if (laporan.dikembalikan != null)
+                pw.Text(
+                    'Dikembalikan : ${dateFormat.format(laporan.dikembalikan!)}',
+                    style: pw.TextStyle(fontSize: 8)),
+              pw.SizedBox(height: 5),
+              pw.Divider(),
+
+              // LIST ALAT
+              pw.Text('Daftar Alat:', style: pw.TextStyle(fontSize: 9)),
+              pw.SizedBox(height: 2),
+              ...laporan.items.map((alat) {
+                return pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Expanded(
+                        child: pw.Text(alat.namaAlat,
+                            style: pw.TextStyle(fontSize: 8))),
+                    pw.Text('${alat.jumlah} pcs',
+                        style: pw.TextStyle(fontSize: 8)),
+                  ],
+                );
+              }).toList(),
+              pw.SizedBox(height: 5),
+              pw.Divider(),
+
+              // FOOTER
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text('Terima Kasih',
+                        style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Barang yang sudah dipinjam',
+                        style: pw.TextStyle(fontSize: 7)),
+                    pw.Text('tidak bisa dikembalikan sebagian',
+                        style: pw.TextStyle(fontSize: 7)),
+                  ],
+                ),
               ),
+              pw.SizedBox(height: 5),
             ],
           );
         },

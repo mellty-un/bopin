@@ -102,65 +102,76 @@ class _RiwayatPageState extends State<RiwayatPage> {
     }
   }
 
- Future<void> _handleDelete(Riwayat riwayat) async {
-  // CEK DULU APAKAH ADA ID_PENGEMBALIAN
-  if (riwayat.idPengembalian == null) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak bisa menghapus: Data ini belum dikembalikan'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 3),
+  Future<void> _handleDelete(Riwayat riwayat) async {
+    // KONFIRMASI DELETE
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Hapus'),
+        content: Text(
+          riwayat.idPengembalian != null
+              ? 'Yakin ingin menghapus data pengembalian ini?'
+              : 'Yakin ingin menghapus data peminjaman ini? Data ini belum dikembalikan.',
         ),
-      );
-    }
-    return;
-  }
-
-  // KONFIRMASI DELETE
-  final bool? confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Konfirmasi Hapus'),
-      content: const Text('Yakin ingin menghapus data pengembalian ini?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Batal'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          child: const Text('Hapus', style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    ),
-  );
-
-  if (confirm != true) return;
-
-  try {
-    // ! OPERATOR UNTUK TELL DART BAHWA INI TIDAK NULL
-    await _riwayatService.deletePengembalian(riwayat.idPengembalian!);
-
-    if (mounted) {
-      SuccessPopup.show(context, 'Pengembalian berhasil dihapus');
-      await _loadRiwayat();
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Gagal menghapus: ${e.toString().replaceAll('Exception: ', '')}',
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
           ),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // Jika ada pengembalian, hapus pengembalian
+      if (riwayat.idPengembalian != null) {
+        await _riwayatService.deletePengembalian(riwayat.idPengembalian!);
+        
+        if (mounted) {
+          SuccessPopup.show(context, 'Pengembalian berhasil dihapus');
+          await _loadRiwayat();
+        }
+      } 
+      // Jika belum ada pengembalian, hapus peminjaman
+      else if (riwayat.idPeminjaman != null) {
+        await _riwayatService.deletePeminjaman(riwayat.idPeminjaman!);
+        
+        if (mounted) {
+          SuccessPopup.show(context, 'Peminjaman berhasil dihapus');
+          await _loadRiwayat();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Data tidak valid untuk dihapus'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Gagal menghapus: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {

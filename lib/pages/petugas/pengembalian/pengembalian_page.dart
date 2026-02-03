@@ -5,9 +5,9 @@ import 'package:aplikasi_peminjaman_alat/models/detail_peminjaman_model.dart';
 import 'package:aplikasi_peminjaman_alat/models/pengembalian_model.dart';
 import 'package:aplikasi_peminjaman_alat/widgets/side_bar.dart';
 import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_dialog.dart';
+import 'package:aplikasi_peminjaman_alat/pages/petugas/pengembalian/pengembalian_card.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'pengembalian_card.dart';
 
 class PengembalianPage extends StatefulWidget {
   const PengembalianPage({super.key});
@@ -42,8 +42,12 @@ class _PengembalianPageState extends State<PengembalianPage> {
     }
   }
 
-  void _updateStatus(PengembalianModel model, String status) async {
+  void _updateStatusTerima(PengembalianModel model) async {
     try {
+      // Ambil nilai denda dari database
+      final dendaValues = await PengembalianService.getDendaValues();
+      final dendaKeterlambatanPerHari = dendaValues['Keterlambatan'] ?? 5000;
+
       // Hitung keterlambatan
       final peminjaman = await Supabase.instance.client
           .from('peminjaman')
@@ -52,38 +56,107 @@ class _PengembalianPageState extends State<PengembalianPage> {
           .single();
 
       final tglKembali = DateTime.parse(peminjaman['tgl_kembali']);
-      final tglDikembalikan = DateTime.now();
+      
+      // Handle nullable tanggalDikembalikan dengan null check
+      final tglDikembalikan = (model.tanggalDikembalikan != null && 
+                               model.tanggalDikembalikan!.isNotEmpty)
+          ? _parseTanggal(model.tanggalDikembalikan!)
+          : DateTime.now();
+
       final keterlambatan = tglDikembalikan.difference(tglKembali).inDays;
       final keterlambatanHari = keterlambatan > 0 ? keterlambatan : 0;
+      final dendaKeterlambatan = keterlambatanHari * dendaKeterlambatanPerHari;
 
-      final dendaKeterlambatan = keterlambatanHari * 5000;
+      // Hitung denda kerusakan dan kehilangan berdasarkan kondisi alat
+      int dendaKerusakan = 0;
+      int dendaKehilangan = 0;
+
+      final dendaKerusakanPerItem = dendaValues['Kerusakan'] ?? 10000;
+      final dendaKehilanganPerItem = dendaValues['Kehilangan'] ?? 20000;
+
+      for (var alat in model.alatList) {
+        if (alat.kondisi == "Rusak") {
+          dendaKerusakan += dendaKerusakanPerItem * alat.jumlah;
+        }
+        if (alat.kondisi == "Hilang") {
+          dendaKehilangan += dendaKehilanganPerItem * alat.jumlah;
+        }
+      }
 
       // Proses pengembalian
       await PengembalianService.prosesPengembalian(
         idPeminjaman: model.id,
         kondisiPengembalian: 'Baik',
         keterlambatanHari: keterlambatanHari,
-        dendaKerusakan: model.dendaKerusakan ?? 0,
+        dendaKerusakan: dendaKerusakan,
         dendaKeterlambatan: dendaKeterlambatan,
-        dendaKehilangan: 0,
-        catatan: null,
+        dendaKehilangan: dendaKehilangan,
+        catatan: 'Diterima oleh petugas',
         alatList: model.alatList,
       );
 
-      // Update status di UI
-      setState(() {
-        final index = _data.indexWhere((e) => e.id == model.id);
-        if (index != -1) {
-          _data[index] = model.copyWith(status: status);
-        }
-      });
+      // Reload data
+      await _loadPengembalian();
+      
+      // PERBAIKAN: Tampilkan success popup
+      if (mounted) {
+        SuccessPopup.show(context, "Pengembalian berhasil diproses");
+      }
     } catch (e) {
       debugPrint('❌ Error updating status: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memproses pengembalian: $e')),
+          SnackBar(
+            content: Text('Gagal memproses pengembalian: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
+    }
+  }
+
+  void _updateStatusTolak(PengembalianModel model) async {
+    try {
+      // Tolak pengembalian
+      await PengembalianService.tolakPengembalian(
+        idPeminjaman: model.id,
+        catatan: 'Ditolak oleh petugas',
+      );
+
+      // Reload data
+      await _loadPengembalian();
+      
+      // PERBAIKAN: Tampilkan success popup
+      if (mounted) {
+        SuccessPopup.show(context, "Pengembalian ditolak");
+      }
+    } catch (e) {
+      debugPrint('❌ Error tolak pengembalian: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menolak pengembalian: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  DateTime _parseTanggal(String tanggal) {
+    try {
+      // Format: DD/MM/YYYY
+      final parts = tanggal.split('/');
+      if (parts.length == 3) {
+        return DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+      }
+      return DateTime.now();
+    } catch (e) {
+      return DateTime.now();
     }
   }
 
@@ -91,7 +164,8 @@ class _PengembalianPageState extends State<PengembalianPage> {
     List<PengembalianModel> filtered = _data;
 
     if (selectedFilter != "Semua") {
-      filtered = filtered.where((item) => item.status == selectedFilter).toList();
+      filtered =
+          filtered.where((item) => item.status == selectedFilter).toList();
     }
 
     final searchText = _searchController.text.toLowerCase();
@@ -130,7 +204,8 @@ class _PengembalianPageState extends State<PengembalianPage> {
                     const SizedBox(width: 16),
                     const Text(
                       "Pengembalian",
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -201,22 +276,19 @@ class _PengembalianPageState extends State<PengembalianPage> {
                                     status: data.status,
                                     alatList: data.alatList,
                                     tanggalPeminjaman: data.tanggalPeminjaman,
-                                    tanggalPengembalian: data.tanggalPengembalian,
-                                    tanggalDikembalikan: data.tanggalDikembalikan ?? '',
+                                    tanggalPengembalian:
+                                        data.tanggalPengembalian,
+                                    tanggalDikembalikan:
+                                        data.tanggalDikembalikan ?? '',
                                     dendaKerusakan: data.dendaKerusakan,
                                     totalDenda: data.totalDenda,
                                     onProsesSuccess: (status) {
-                                      // Popup diterima / ditolak
-                                      SuccessPopup.show(
-                                        context,
-                                        status == "Selesai"
-                                            ? "Pengembalian diterima"
-                                            : "Pengembalian ditolak",
-                                      );
-
-                                      Future.delayed(const Duration(milliseconds: 700), () {
-                                        _updateStatus(data, status);
-                                      });
+                                      // PERBAIKAN: Proses berdasarkan status
+                                      if (status == "Selesai") {
+                                        _updateStatusTerima(data);
+                                      } else {
+                                        _updateStatusTolak(data);
+                                      }
                                     },
                                   ),
                                 ),

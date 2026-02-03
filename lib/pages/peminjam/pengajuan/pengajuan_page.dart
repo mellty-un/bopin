@@ -16,7 +16,7 @@ class _PengajuanPageState extends State<PengajuanPage> {
 
   String selectedFilter = 'Semua';
   TextEditingController searchController = TextEditingController();
-  
+
   List<Map<String, dynamic>> allPeminjaman = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -60,8 +60,22 @@ class _PengajuanPageState extends State<PengajuanPage> {
   List<Map<String, dynamic>> get filteredData {
     var result = allPeminjaman;
 
+    // Filter berdasarkan status peminjaman
     if (selectedFilter != 'Semua') {
-      result = result.where((e) => e['status'] == selectedFilter).toList();
+      result = result.where((e) {
+        final statusPeminjaman = e['status_peminjaman'] as String? ?? '';
+        return statusPeminjaman == selectedFilter;
+      }).toList();
+    }
+
+    // Filter berdasarkan search
+    final searchText = searchController.text.toLowerCase();
+    if (searchText.isNotEmpty) {
+      result = result.where((e) {
+        final alat = e['alat'] as Map<String, dynamic>? ?? {};
+        final alatNames = alat.keys.join(' ').toLowerCase();
+        return alatNames.contains(searchText);
+      }).toList();
     }
 
     return result;
@@ -69,14 +83,13 @@ class _PengajuanPageState extends State<PengajuanPage> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       key: _scaffoldKey,
-     drawer: Padding(
-        padding: const EdgeInsets.only(top: 70, bottom: 60),
-        child: const SideBar(currentPage: "Pengajuan"),
+      drawer: const Padding(
+        padding: EdgeInsets.only(top: 70, bottom: 60),
+        child: SideBar(currentPage: "Pengajuan"),
       ),
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -95,8 +108,7 @@ class _PengajuanPageState extends State<PengajuanPage> {
                   children: [
                     IconButton(
                       icon: Icon(Icons.menu, size: isSmallScreen ? 28 : 32),
-                      onPressed: () =>
-                          _scaffoldKey.currentState?.openDrawer(),
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                     ),
                     const SizedBox(width: 16),
                     Text(
@@ -167,10 +179,13 @@ class _PengajuanPageState extends State<PengajuanPage> {
             style: TextStyle(fontSize: 16, color: Colors.red[600]),
           ),
           const SizedBox(height: 8),
-          Text(
-            _errorMessage ?? 'Terjadi kesalahan',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[600]),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              _errorMessage ?? 'Terjadi kesalahan',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -204,7 +219,10 @@ class _PengajuanPageState extends State<PengajuanPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Belum ada peminjaman',
+            selectedFilter == 'Semua'
+                ? 'Belum ada peminjaman'
+                : 'Tidak ada peminjaman dengan status $selectedFilter',
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -230,12 +248,21 @@ class _PengajuanPageState extends State<PengajuanPage> {
             borderSide: BorderSide.none,
           ),
         ),
+        onChanged: (value) => setState(() {}),
       ),
     );
   }
 
   Widget _filterChips() {
-    final filters = ['Semua', 'Menunggu', 'Disetujui', 'Ditolak', 'Dikembalikan'];
+    // Filter sesuai dengan status peminjaman yang ada
+    final filters = [
+      'Semua',
+      'Menunggu',
+      'Disetujui',
+      'Ditolak',
+      'Menunggu Pengembalian',
+      'Dikembalikan'
+    ];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -249,12 +276,13 @@ class _PengajuanPageState extends State<PengajuanPage> {
               child: ChoiceChip(
                 label: Text(f),
                 selected: selected,
-                onSelected: (_) =>
-                    setState(() => selectedFilter = f),
+                onSelected: (_) => setState(() => selectedFilter = f),
                 selectedColor: const Color(0xff36536B),
                 labelStyle: TextStyle(
                   color: selected ? Colors.white : Colors.black,
+                  fontSize: 12,
                 ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               ),
             );
           }).toList(),

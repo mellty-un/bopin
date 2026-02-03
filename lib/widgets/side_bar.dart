@@ -171,7 +171,7 @@ class _SideBarState extends State<SideBar> {
   // ================= PETUGAS =================
   List<Widget> _petugasMenu() => [
         _menuItem(title: "Dashboars", page: "Dashboars", onTap: () => _go(const PetugasDashboard())),
-                _menuItem(title: "Peminjama", page: "Peminjama", onTap: () => _go(const PeminjamanPage())),
+                _menuItem(title: "Peminjaman", page: "Peminjaman", onTap: () => _go(const PeminjamanPage())),
         _menuItem(title: "Pengembalian", page: "Pengembalian", onTap: () => _go(const PengembalianPage())),
         _menuItem(title: "Laporan", page: "Laporan", onTap: () => _go(const LaporanPage())),
       ];
@@ -179,7 +179,7 @@ class _SideBarState extends State<SideBar> {
   // ================= PEMINJAM =================
   List<Widget> _peminjamMenu() => [
         _menuItem(title: "Dashboard", page: "Dashboard", onTap: () => _go(const PeminjamDashboard())),
-        _menuItem(title: "Alat ", page: "Alat Peminjam", onTap: () => _go(const AlatPeminjamPage())),
+        _menuItem(title: "Alat ", page: "Alat", onTap: () => _go(const AlatPeminjamPage())),
         _menuItem(title: "Pengajuan ", page: "Pengajuan ", onTap: () => _go(const PengajuanPage())),
         _menuItem(title: "Pengembalian ", page: "Pengembalian ", onTap: () => _go(const PengembaliaPeminjamnPage())),
       ];

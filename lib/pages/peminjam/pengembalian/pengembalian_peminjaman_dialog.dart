@@ -5,7 +5,7 @@ class PengembalianPeminjamDetailDialog extends StatefulWidget {
   final String id;
   final String nama;
   final String tanggalDiajukan;
-  final String status; // bisa "Belum", "Menunggu", "Selesai"
+  final String status; // "Belum", "Menunggu", "Selesai", "Ditolak"
   final List<DetailPeminjaman> alatList;
   final String tanggalPeminjaman;
   final String tanggalPengembalian;
@@ -32,8 +32,22 @@ class _PengembalianPeminjamDetailDialogState
     extends State<PengembalianPeminjamDetailDialog> {
   DateTime? tglDikembalikan;
 
+  // PERBAIKAN: Cek apakah sudah diajukan atau selesai
   bool get isAlreadySubmitted =>
       widget.status == "Menunggu" || widget.status == "Selesai";
+
+  Color getStatusColor() {
+    switch (widget.status) {
+      case "Selesai":
+        return Colors.green;
+      case "Menunggu":
+        return Colors.orange;
+      case "Ditolak":
+        return Colors.red;
+      default:
+        return const Color(0xFF3A587A);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,11 +74,7 @@ class _PengembalianPeminjamDetailDialogState
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: widget.status == "Selesai"
-                          ? Colors.green
-                          : widget.status == "Menunggu"
-                              ? Colors.orange
-                              : const Color(0xFF3A587A),
+                      color: getStatusColor(),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -98,22 +108,23 @@ class _PengembalianPeminjamDetailDialogState
                           Text("${alat.jumlah}"),
                         ],
                       ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text(
-                            alat.kondisi,
-                            style: TextStyle(
-                              color: alat.kondisi == "Rusak"
-                                  ? const Color(0xFFDC2626)
-                                  : alat.kondisi == "Hilang"
-                                      ? const Color(0xFFFFA500)
-                                      : const Color(0xFF4CAF50),
-                              fontSize: 12,
+                      if (alat.kondisi.isNotEmpty)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Text(
+                              alat.kondisi,
+                              style: TextStyle(
+                                color: alat.kondisi == "Rusak"
+                                    ? const Color(0xFFDC2626)
+                                    : alat.kondisi == "Hilang"
+                                        ? const Color(0xFFFFA500)
+                                        : const Color(0xFF4CAF50),
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                       if (widget.alatList.indexOf(alat) <
                           widget.alatList.length - 1)
                         const SizedBox(height: 12),
@@ -179,75 +190,128 @@ class _PengembalianPeminjamDetailDialogState
 
               const SizedBox(height: 20),
 
-              // Input Tanggal Dikembalikan
-              InkWell(
-                onTap: isAlreadySubmitted
-                    ? null
-                    : () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2100),
-                        );
+              // PERBAIKAN: Input Tanggal hanya muncul jika status "Belum"
+              if (widget.status == "Belum") ...[
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
 
-                        if (picked != null) {
-                          setState(() {
-                            tglDikembalikan = picked;
-                          });
-                        }
-                      },
-                child: Container(
+                    if (picked != null) {
+                      setState(() {
+                        tglDikembalikan = picked;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          tglDikembalikan == null
+                              ? "Pilih Tanggal Dikembalikan"
+                              : "${tglDikembalikan!.day.toString().padLeft(2, '0')}/${tglDikembalikan!.month.toString().padLeft(2, '0')}/${tglDikembalikan!.year}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        const Icon(Icons.calendar_today, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+
+              // PERBAIKAN: Tombol Ajukan hanya muncul jika status "Belum"
+              if (widget.status == "Belum")
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: tglDikembalikan == null
+                        ? null
+                        : () {
+                            Navigator.pop(context);
+                            widget.onAjukanSuccess(tglDikembalikan!);
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3A587A),
+                      disabledBackgroundColor: Colors.grey[300],
+                    ),
+                    child: const Text(
+                      "Ajukan Pengembalian",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+
+              // PERBAIKAN: Info Status muncul sesuai kondisi
+              if (widget.status == "Menunggu")
+                Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
+                    color: Colors.orange[50],
                     borderRadius: BorderRadius.circular(8),
-                    color: isAlreadySubmitted
-                        ? Colors.grey[200]
-                        : Colors.transparent,
+                    border: Border.all(color: Colors.orange),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        tglDikembalikan == null
-                            ? (isAlreadySubmitted
-                                ? "Menunggu pengembalian"
-                                : "Pilih Tanggal Dikembalikan")
-                            : "${tglDikembalikan!.day.toString().padLeft(2,'0')}/${tglDikembalikan!.month.toString().padLeft(2,'0')}/${tglDikembalikan!.year}",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color:
-                              isAlreadySubmitted ? Colors.grey : Colors.black,
-                        ),
-                      ),
-                      const Icon(Icons.calendar_today, size: 16),
-                    ],
+                  child: const Text(
+                    "Menunggu verifikasi petugas",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 20),
-
-              // Tombol Ajukan
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: (tglDikembalikan == null || isAlreadySubmitted)
-                      ? null
-                      : () {
-                          Navigator.pop(context);
-                          widget.onAjukanSuccess(tglDikembalikan!);
-                        },
-                  child: Text(
-                    isAlreadySubmitted
-                        ? widget.status == "Selesai"
-                            ? "Selesai"
-                            : "Menunggu"
-                        : "Ajukan Pengembalian",
+              if (widget.status == "Selesai")
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green),
+                  ),
+                  child: const Text(
+                    "Pengembalian selesai",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
+
+              if (widget.status == "Ditolak")
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red),
+                  ),
+                  child: const Text(
+                    "Pengembalian ditolak",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

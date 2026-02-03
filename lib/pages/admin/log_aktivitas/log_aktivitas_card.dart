@@ -3,10 +3,12 @@ import 'package:intl/intl.dart';
 
 class LogAktivitasCard extends StatefulWidget {
   final Map<String, dynamic> aktivitas;
+  final bool showActionButton; // Parameter baru untuk kontrol tombol
 
   const LogAktivitasCard({
     super.key,
     required this.aktivitas,
+    this.showActionButton = true, // Default true untuk kompatibilitas
   });
 
   @override
@@ -64,6 +66,12 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
     String name = widget.aktivitas["name"] ?? "Unknown";
     String role = widget.aktivitas["role"] ?? "samisama";
     String status = widget.aktivitas["status"] ?? "Peminjaman";
+    
+    // Ambil data alat dari format baru jika ada
+    final alatMap = widget.aktivitas["alat_map"] as Map<String, dynamic>?;
+    final hasMoreAlat = widget.aktivitas["has_more_alat"] as bool? ?? false;
+    final alatItems = alatMap?.keys.toList() ?? [];
+    final jumlahItems = alatMap?.values.toList() ?? [];
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -232,60 +240,62 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
                   // List Alat tanpa border container dan icon
                   Column(
                     children: [
-                      // Item Alat 1
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            // Hapus Icon di sini
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Panci',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w500,
+                      // Item Alat 1 (dari data)
+                      if (alatItems.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 8),
+                              Text(
+                                alatItems[0],
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
-                            const Spacer(),
-                            // Hapus Container dan ganti dengan Text biasa
-                            Text(
-                              widget.aktivitas["jumlah"]?.toString() ?? '1',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w600,
+                              const Spacer(),
+                              Text(
+                                jumlahItems.isNotEmpty ? jumlahItems[0].toString() : '1',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      // Item Alat 2 (jika ada lebih dari 1)
-                      if (widget.aktivitas.containsKey('alat_tambahan'))
-                        Row(
-                          children: [
-                            // Hapus Icon di sini
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Panci',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w500,
-                              ),
+                      
+                      // Item Alat tambahan jika ada lebih dari 1
+                      if (hasMoreAlat && alatItems.length > 1)
+                        for (int i = 1; i < alatItems.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                const SizedBox(width: 8),
+                                Text(
+                                  alatItems[i],
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w500,
+                                ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  jumlahItems.length > i ? jumlahItems[i].toString() : '1',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const Spacer(),
-                            // Hapus Container dan ganti dengan Text biasa
-                            const Text(
-                              '1',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
                     ],
                   ),
 
@@ -315,9 +325,7 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
                             Row(
                               children: [
                                 Text(
-                                  _formatDate(
-                                          widget.aktivitas["tanggal_pinjam"]) ??
-                                      '20/01/2026',
+                                  _formatDate(widget.aktivitas["tanggal_pinjam"]) ?? '20/01/2026',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Colors.black87,
@@ -363,41 +371,42 @@ class _LogAktivitasCardState extends State<LogAktivitasCard>
 
                   const SizedBox(height: 20),
 
-                  // Tombol Action
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Action untuk tombol selesai
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3A587A),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  // Tombol Action (hanya ditampilkan jika showActionButton true)
+                  if (widget.showActionButton)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Action untuk tombol selesai
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3A587A),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                          foregroundColor: Colors.white,
                         ),
-                        elevation: 0,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.check_circle_outline,
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Selesai',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 20,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 8),
+                            Text(
+                              'Selesai',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
