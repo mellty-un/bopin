@@ -60,25 +60,33 @@ class _RiwayatPageState extends State<RiwayatPage> {
     }
   }
 
-  void _applyFilter() {
-    final query = _searchController.text.toLowerCase();
+void _applyFilter() {
+  final query = _searchController.text.toLowerCase();
 
-    setState(() {
-      filteredList = riwayatList.where((riwayat) {
-        final nama = riwayat.namaUser?.toLowerCase() ?? '';
-        final alat = riwayat.namaAlat?.toLowerCase() ?? '';
-        final catatan = riwayat.catatan?.toLowerCase() ?? '';
+  setState(() {
+    filteredList = riwayatList.where((riwayat) {
+      final nama = riwayat.namaUser?.toLowerCase() ?? '';
+      final alat = riwayat.namaAlat?.toLowerCase() ?? '';
+      final catatan = riwayat.catatan?.toLowerCase() ?? '';
 
-        final matchSearch =
-            nama.contains(query) || alat.contains(query) || catatan.contains(query);
+      final matchSearch =
+          nama.contains(query) ||
+          alat.contains(query) ||
+          catatan.contains(query);
 
-        final matchFilter =
-            _activeFilter == 'Semua' || (_activeFilter == 'Pengembalian');
+      final matchFilter = switch (_activeFilter) {
+        'Semua' => true,
+        'Peminjaman' => riwayat.idPengembalian == null,
+        'Pengembalian' => riwayat.idPengembalian != null,
+        _ => true,
+      };
 
-        return matchSearch && matchFilter;
-      }).toList();
-    });
-  }
+      return matchSearch && matchFilter;
+    }).toList();
+  });
+}
+
+  
 
   void _setFilter(String filter) {
     setState(() {
@@ -90,11 +98,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
   Future<void> _showEditDialog(Riwayat riwayat) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => RiwayatDialog(
-        riwayat: riwayat.toMap(),
-        isEdit: true,
-        onSuccess: _loadRiwayat,
-      ),
+      builder: (context) =>
+          RiwayatDialog(riwayat: riwayat.toMap(), onSuccess: _loadRiwayat),
     );
 
     if (result == true && mounted) {
@@ -133,16 +138,16 @@ class _RiwayatPageState extends State<RiwayatPage> {
       // Jika ada pengembalian, hapus pengembalian
       if (riwayat.idPengembalian != null) {
         await _riwayatService.deletePengembalian(riwayat.idPengembalian!);
-        
+
         if (mounted) {
           SuccessPopup.show(context, 'Pengembalian berhasil dihapus');
           await _loadRiwayat();
         }
-      } 
+      }
       // Jika belum ada pengembalian, hapus peminjaman
       else if (riwayat.idPeminjaman != null) {
         await _riwayatService.deletePeminjaman(riwayat.idPeminjaman!);
-        
+
         if (mounted) {
           SuccessPopup.show(context, 'Peminjaman berhasil dihapus');
           await _loadRiwayat();
@@ -197,10 +202,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
                 const SizedBox(width: 12),
                 const Text(
                   'Riwayat',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -220,7 +222,6 @@ class _RiwayatPageState extends State<RiwayatPage> {
                   ),
                 ),
               )
-
             // Error State
             else if (_errorMessage != null)
               Center(
@@ -228,8 +229,11 @@ class _RiwayatPageState extends State<RiwayatPage> {
                   padding: const EdgeInsets.symmetric(vertical: 50),
                   child: Column(
                     children: [
-                      const Icon(Icons.error_outline,
-                          size: 50, color: Colors.red),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 50,
+                        color: Colors.red,
+                      ),
                       const SizedBox(height: 16),
                       const Text('Gagal memuat data'),
                       const SizedBox(height: 8),
@@ -244,10 +248,14 @@ class _RiwayatPageState extends State<RiwayatPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
                         ),
-                        child: const Text('Coba Lagi',
-                            style: TextStyle(color: Colors.white)),
+                        child: const Text(
+                          'Coba Lagi',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ],
                   ),
@@ -329,7 +337,19 @@ class _RiwayatPageState extends State<RiwayatPage> {
                       children: filteredList.map((riwayat) {
                         return RiwayatCard(
                           riwayat: riwayat.toMap(),
-                          onEdit: () => _showEditDialog(riwayat),
+                          onEdit: () {
+                            if (riwayat.idPengembalian == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Data ini belum dikembalikan'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              return;
+                            }
+                            _showEditDialog(riwayat);
+                          },
+
                           onDelete: () => _handleDelete(riwayat),
                         );
                       }).toList(),

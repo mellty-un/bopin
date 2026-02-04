@@ -20,7 +20,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int totalKategori = 0;
   int totalPeminjam = 0;
   List<Map<String, dynamic>> recentHistory = [];
-String? userName;
+  String? userName;
 
   bool isLoading = true;
   String? errorMessage;
@@ -29,7 +29,7 @@ String? userName;
   void initState() {
     super.initState();
     _loadDashboardData();
-     _loadCurrentUser();
+    _loadCurrentUser();
   }
 
   Future<void> _loadDashboardData() async {
@@ -45,335 +45,199 @@ String? userName;
         _loadTotalKategori(),
         _loadTotalPeminjam(),
         _loadRecentHistory(),
-        
       ]);
     } catch (e) {
-      setState(() {
-        errorMessage = 'Gagal memuat data dashboard';
-      });
-      print('Error loading dashboard: $e');
+      errorMessage = 'Gagal memuat data dashboard';
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
   Future<void> _loadCurrentUser() async {
-  try {
-    final user = _supabase.auth.currentUser;
-    if (user != null) {
-      // Ambil nama user dari tabel users
-      final response = await _supabase
-          .from('users')
-          .select('nama')
-          .eq('id_user', user.id)
-          .single();
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        final res = await _supabase
+            .from('users')
+            .select('nama')
+            .eq('id_user', user.id)
+            .single();
 
-      setState(() {
-        userName = response['nama'] as String?;
-      });
-    }
-  } catch (e) {
-    print('Error loading current user: $e');
-    setState(() {
+        userName = res['nama'];
+      }
+    } catch (_) {
       userName = 'User';
-    });
+    }
+    setState(() {});
   }
-}
 
   Future<void> _loadTotalUsers() async {
-    try {
-      final response = await _supabase
-          .from('users')
-          .select('id_user')
-          .count(CountOption.exact);
-
-      setState(() {
-        totalUsers = response.count ?? 0;
-      });
-    } catch (e) {
-      print('Error loading total users: $e');
-    }
+    final res = await _supabase
+        .from('users')
+        .select('id_user')
+        .count(CountOption.exact);
+    totalUsers = res.count ?? 0;
   }
 
   Future<void> _loadTotalAlat() async {
-    try {
-      final response = await _supabase
-          .from('alat')
-          .select('id_alat')
-          .count(CountOption.exact);
-
-      setState(() {
-        totalAlat = response.count ?? 0;
-      });
-    } catch (e) {
-      print('Error loading total alat: $e');
-    }
+    final res = await _supabase
+        .from('alat')
+        .select('id_alat')
+        .count(CountOption.exact);
+    totalAlat = res.count ?? 0;
   }
 
   Future<void> _loadTotalKategori() async {
-    try {
-      final response = await _supabase
-          .from('kategori')
-          .select('id_kategori')
-          .count(CountOption.exact);
-
-      setState(() {
-        totalKategori = response.count ?? 0;
-      });
-    } catch (e) {
-      print('Error loading total kategori: $e');
-    }
+    final res = await _supabase
+        .from('kategori')
+        .select('id_kategori')
+        .count(CountOption.exact);
+    totalKategori = res.count ?? 0;
   }
 
   Future<void> _loadTotalPeminjam() async {
-    try {
-      // Hitung peminjam aktif (status bukan Ditolak)
-      final response = await _supabase
-          .from('peminjaman')
-          .select('id_peminjaman')
-          .neq('status', 'Ditolak')
-          .count(CountOption.exact);
-
-      setState(() {
-        totalPeminjam = response.count ?? 0;
-      });
-    } catch (e) {
-      print('Error loading total peminjam: $e');
-    }
+    final res = await _supabase
+        .from('peminjaman')
+        .select('id_peminjaman')
+        .neq('status', 'Ditolak')
+        .count(CountOption.exact);
+    totalPeminjam = res.count ?? 0;
   }
 
-  Future<void> _loadRecentHistory() async {
-    try {
-      final response = await _supabase
-          .from('pengembalian')
-          .select('''
-            id_pengembalian,
-            tgl_dikembalikan,
-            kondisi_pengembalian,
-            catatan,
-            peminjaman!inner(
-              id_peminjaman,
-              nama_user,
-              detail_peminjaman(
-                alat(nama_alat)
-              )
-            )
-          ''')
-          .order('tgl_dikembalikan', ascending: false)
-          .limit(3);
+Future<void> _loadRecentHistory() async {
+  final response = await _supabase
+      .from('pengembalian')
+      .select('''
+        tgl_dikembalikan,
+        kondisi_pengembalian,
+        peminjaman (
+          detail_peminjaman (
+            alat ( nama_alat )
+          )
+        )
+      ''')
+      .order('tgl_dikembalikan', ascending: false)
+      .limit(3);
 
-      final List<Map<String, dynamic>> history = [];
+  recentHistory = [];
 
-      for (var item in response) {
-        try {
-          final peminjaman = item['peminjaman'] as Map<String, dynamic>?;
-          if (peminjaman == null) continue;
+  for (final item in response) {
+    final peminjaman = item['peminjaman'];
+    final detailList = peminjaman?['detail_peminjaman'] as List? ?? [];
 
-          final detailList = peminjaman['detail_peminjaman'] as List?;
-          String? namaAlat;
-          int jumlahAlat = 0;
-
-          if (detailList != null && detailList.isNotEmpty) {
-            jumlahAlat = detailList.length;
-            final detail = detailList[0] as Map<String, dynamic>?;
-            if (detail != null) {
-              final alat = detail['alat'] as Map<String, dynamic>?;
-              namaAlat = alat?['nama_alat'] as String?;
-            }
-          }
-
-          String title = 'Pengembalian';
-          if (namaAlat != null) {
-            title = namaAlat;
-          }
-
-          String formattedDate = 'Tidak diketahui';
-          if (item['tgl_dikembalikan'] != null) {
-            try {
-              final date = DateTime.parse(item['tgl_dikembalikan'] as String);
-              formattedDate =
-                  '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-            } catch (e) {
-              formattedDate = item['tgl_dikembalikan'].toString();
-            }
-          }
-
-          history.add({
-            'title': title,
-            'subtitle': item['kondisi_pengembalian'] ?? 'Berhasil',
-            'qty': jumlahAlat > 0 ? '$jumlahAlat Alat' : '1 Alat',
-            'date': formattedDate,
-          });
-        } catch (e) {
-          print('Error parsing history item: $e');
-        }
+    String namaAlat = 'Alat';
+    if (detailList.isNotEmpty) {
+      final alat = detailList.first['alat'];
+      if (alat != null && alat['nama_alat'] != null) {
+        namaAlat = alat['nama_alat'];
       }
-
-      setState(() {
-        recentHistory = history;
-      });
-    } catch (e) {
-      print('Error loading recent history: $e');
     }
+
+    final date = DateTime.parse(item['tgl_dikembalikan']);
+
+    recentHistory.add({
+      'title': namaAlat,
+      'subtitle': item['kondisi_pengembalian'] ?? '-',
+      'qty': '${detailList.length} Alat',
+      'date': '${date.day}/${date.month}/${date.year}',
+    });
   }
 
-
+  setState(() {});
+}
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth - 40 - 16) / 2;
-    final cardHeight = 133;
-
     return Scaffold(
       key: _scaffoldKey,
-      drawer: Padding(
-        padding: const EdgeInsets.only(top: 60, bottom: 60),
-        child: const SideBar(currentPage: "Dashboard"),
-      ),
+      drawer: const SideBar(currentPage: "Dashboard"),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(left: 20, right: 20, top: 30),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 16, bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.menu,
-                        size: 32,
-                        color: Colors.black87,
-                      ),
-                      onPressed: () {
-                        _scaffoldKey.currentState?.openDrawer();
-                      },
+              // ===== HEADER =====
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.menu, size: 32),
+                    onPressed: () =>
+                        _scaffoldKey.currentState?.openDrawer(),
+                  ),
+                  const SizedBox(width: 16),
+                  const Text(
+                    "Dashboard",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 16),
-                    const Text(
-                      "Dashboard",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
 
-              const SizedBox(width: 40),
+              const SizedBox(height: 20),
 
               if (isLoading)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 50),
-                    child: Column(
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Memuat data dashboard...'),
-                      ],
-                    ),
-                  ),
-                )
-              else if (errorMessage != null)
+                const Center(child: CircularProgressIndicator())
+              else ...[
+                // ===== WELCOME CARD =====
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.only(bottom: 20),
+                  height: 160,
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.shade200),
+                    color: AppColor.primary,
+                    borderRadius: BorderRadius.circular(15),
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red, size: 32),
-                      SizedBox(height: 12),
-                      Text(
-                        errorMessage!,
-                        style: TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: _loadDashboardData,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 10,
-                          ),
+                      const Text(
+                        'Selamat Datang!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
                         ),
-                        child: Text(
-                          'Coba Lagi',
-                          style: TextStyle(color: Colors.white),
+                      ),
+                      Text(
+                        userName ?? 'User',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'kelola sistem peminjaman dengan mudah\ndan efisien',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 16,
+                          height: 1.4,
                         ),
                       ),
                     ],
                   ),
-                )
-              // Content utama
-              else
-                Column(
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      height: 160,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColor.primary,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      const Text(
-  'Selamat Datang!',
-  style: TextStyle(
-    color: Colors.white,
-    fontSize: 24,
-    fontWeight: FontWeight.w600,
-  ),
-),
-Text(
-  userName ?? 'User', // <-- disini
-  style: const TextStyle(
-    color: Colors.white,
-    fontSize: 24,
-    fontWeight: FontWeight.w600,
-  ),
-),
-                          const SizedBox(height: 6),
-                          Text(
-                            'kelola sistem peminjaman dengan mudah\ndan efisien',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 16,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                ),
 
-                    const SizedBox(height: 30),
+                const SizedBox(height: 30),
 
-                    // ===== STAT CARDS =====
-                    GridView.count(
+                // ===== STAT CARDS (RESPONSIF TANPA UBah UI) =====
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return GridView.count(
                       crossAxisCount: 2,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      childAspectRatio: cardWidth / cardHeight,
+                      childAspectRatio:
+                          constraints.maxWidth < 360 ? 1.1 : 1.3,
                       children: [
                         _buildStatCard(
                           icon: Icons.groups_outlined,
@@ -396,57 +260,38 @@ Text(
                           label: 'Total Peminjam',
                         ),
                       ],
-                    ),
-
-                    const SizedBox(height: 30),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Riwayat Terbaru',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    ...recentHistory
-                        .map(
-                          (history) => _historyItem(
-                            title: history['title'] ?? 'Riwayat',
-                            subtitle: history['subtitle'] ?? 'Berhasil',
-                            qty: history['qty'] ?? '1 Alat',
-                            date: history['date'] ?? 'Tanggal',
-                          ),
-                        )
-                        .toList(),
-
-                    if (recentHistory.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Belum ada riwayat',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+                    );
+                  },
                 ),
+
+                const SizedBox(height: 30),
+
+                // ===== RIWAYAT =====
+                Container(//tntangan menambah container
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color:  Color(0xFF36536B)),
+
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Riwayat Terbaru',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                ...recentHistory.map((h) => _historyItem(
+                      title: h['title'],
+                      subtitle: h['subtitle'],
+                      qty: h['qty'],
+                      date: h['date'],
+                    )),
+              ],
             ],
           ),
         ),
@@ -483,26 +328,26 @@ Text(
               color: const Color(0xFFD1D8DE),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 20, color: Colors.black87),
+            child: Icon(icon, size: 20),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 6),
           Center(
             child: Text(
               value,
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.black,
               ),
             ),
           ),
           const SizedBox(height: 6),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
             ),
           ),
         ],
@@ -535,13 +380,11 @@ Text(
           Container(
             width: 36,
             height: 36,
-            decoration: BoxDecoration(
-              color: const Color(0xFF22C55E),
+            decoration: const BoxDecoration(
+              color: Color(0xFF22C55E),
               shape: BoxShape.circle,
             ),
-            child: const Center(
-              child: Icon(Icons.check, color: Colors.white, size: 20),
-            ),
+            child: const Icon(Icons.check, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -550,18 +393,18 @@ Text(
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    color: Colors.black,
                   ),
                 ),
+                
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(4),
@@ -571,7 +414,6 @@ Text(
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF16A34A),
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -583,11 +425,9 @@ Text(
             children: [
               Text(
                 qty,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w500,
-                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 4),
               Text(

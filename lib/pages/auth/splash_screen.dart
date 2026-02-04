@@ -27,8 +27,8 @@ class _SplashScreenState extends State<SplashScreen> {
        body: Center(
         child: Image.asset(
           'assets/images/logo_bopin.png',
-          width: 180,
-          height: 180,
+          width: 160,
+          height: 160,
         ),
       ),
     );

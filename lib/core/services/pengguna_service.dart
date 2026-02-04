@@ -305,4 +305,69 @@ static Future<String> createPengguna({
 
     return null;
   }
+
+/// =============================
+/// DASHBOARD STATISTIC
+/// =============================
+static Future<Map<String, int>> getDashboardStat() async {
+  try {
+    final menunggu = await _client
+        .from('peminjaman')
+        .select('id_peminjaman')
+        .eq('status', 'Menunggu');
+
+    final disetujui = await _client
+        .from('peminjaman')
+        .select('id_peminjaman')
+        .eq('status', 'Disetujui');
+
+    final dikembalikan = await _client
+        .from('peminjaman')
+        .select('id_peminjaman')
+        .eq('status', 'Dikembalikan');
+
+    final peminjam = await _client
+        .from('users')
+        .select('id_user')
+        .eq('role', 'peminjam');
+
+    return {
+      'menunggu': menunggu.length,
+      'disetujui': disetujui.length,
+      'dikembalikan': dikembalikan.length,
+      'peminjam': peminjam.length,
+    };
+  } catch (e) {
+    print('❌ Error getDashboardStat: $e');
+    return {
+      'menunggu': 0,
+      'disetujui': 0,
+      'dikembalikan': 0,
+      'peminjam': 0,
+    };
+  }
+}
+/// =============================
+/// NAMA USER YANG SEDANG LOGIN
+/// =============================
+static Future<String> getNamaUserLogin() async {
+  try {
+    final user = _client.auth.currentUser;
+
+    if (user == null) return 'User';
+
+    final data = await _client
+        .from('users')
+        .select('nama')
+        .eq('id_user', user.id)
+        .single();
+
+    return data['nama'] ?? 'User';
+  } catch (e) {
+    print('❌ Error getNamaUserLogin: $e');
+    return 'User';
+  }
+}
+
+
 }

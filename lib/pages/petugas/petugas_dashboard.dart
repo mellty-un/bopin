@@ -11,6 +11,7 @@ class PetugasDashboard extends StatefulWidget {
 
 class _PetugasDashboardState extends State<PetugasDashboard> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  String namaUser = 'Pengguna';
 
 
 
@@ -59,10 +60,9 @@ class _PetugasDashboardState extends State<PetugasDashboard> {
               
                          
 
-
+ // ===== WELCOME BANNER =====
               Container(
                 width: double.infinity,
-                height: 135,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppColor.primary,
@@ -74,27 +74,21 @@ class _PetugasDashboardState extends State<PetugasDashboard> {
                     const Text(
                       'Selamat Datang!',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
                     ),
-                    const Text(
-                      'Melati Tiara',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Text(
+                      namaUser,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'kelola sistem peminjaman dengan mudah\ndan efisien',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
+                      'Kelola sistem peminjaman dengan mudah dan efisien',
+                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13),
                     ),
                   ],
                 ),
@@ -114,22 +108,22 @@ class _PetugasDashboardState extends State<PetugasDashboard> {
                   _buildStatCard(
                     icon: Icons.groups_outlined,
                     value: '60',
-                    label: 'Total Pengguna',
+                    label: 'Total Menunggu',
                   ),
                   _buildStatCard(
                     icon: Icons.inventory_2_outlined,
                     value: '10',
-                    label: 'Total Alat',
+                    label: 'Total peminjam',
                   ),
                   _buildStatCard(
                     icon: Icons.category_outlined,
                     value: '4',
-                    label: 'Total Kategori',
+                    label: 'Total disetujui',
                   ),
                   _buildStatCard(
                     icon: Icons.access_time,
                     value: '12',
-                    label: 'Total Peminjam',
+                    label: 'Total diikembalina',
                   ),
                 ],
               ),
@@ -182,8 +176,8 @@ class _PetugasDashboardState extends State<PetugasDashboard> {
       decoration: BoxDecoration(
         color: const Color(0xFFF2F4F6),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFF9FB2C9),
+                 border: Border.all(color:  Color(0xFF36536B),
+
           width: 1.2,
         ),
         boxShadow: [

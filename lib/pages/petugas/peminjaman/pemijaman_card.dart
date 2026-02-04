@@ -47,11 +47,12 @@ class _PeminjamanCardState extends State<PeminjamanCard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color:  Color(0xFF36536B)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
               blurRadius: 8,
-              offset: const Offset(0, 2),
+              offset: const Offset(0, 6),
             ),
           ],
         ),

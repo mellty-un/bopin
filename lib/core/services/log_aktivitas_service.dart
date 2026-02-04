@@ -28,7 +28,6 @@ class LogAktivitasService {
         final aktivitas = log['aktivitas'] as String? ?? '';
         final waktu = log['waktu'] as String? ?? '';
 
-        // Parse aktivitas string untuk mendapatkan informasi
         final parsedInfo = _parseAktivitas(aktivitas);
 
         result.add({
@@ -53,11 +52,9 @@ class LogAktivitasService {
     }
   }
 
-  // Parser sederhana untuk aktivitas string
   static Map<String, dynamic> _parseAktivitas(String aktivitas) {
     final result = <String, dynamic>{};
 
-    // Deteksi jenis aktivitas
     if (aktivitas.toLowerCase().contains('peminjaman')) {
       result['status'] = 'Peminjaman';
     } else if (aktivitas.toLowerCase().contains('pengembalian')) {
@@ -204,7 +201,7 @@ class LogAktivitasService {
           'alat_map': alatMap,
           'tanggal_pinjam': tanggalPinjam,
           'tanggal_kembali': tanggalKembali,
-          'disetujui_oleh': 'Admin', // Default, bisa diambil dari peminjaman jika ada
+          'disetujui_oleh': 'Admin', 
           'waktu': waktu,
           'has_more_alat': alatMap.length > 1,
         });

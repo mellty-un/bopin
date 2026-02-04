@@ -19,26 +19,25 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
 
   bool isLoading = false;
+  bool isPasswordVisible = false;
+
   String? emailError;
   String? passwordError;
 
   // ================= VALIDASI =================
   bool _validate() {
-  setState(() {
-    emailError = Validator.email(emailController.text);
-    passwordError = Validator.password(passwordController.text);
-  });
-
-  return emailError == null && passwordError == null;
-}
-
+    setState(() {
+      emailError = Validator.email(emailController.text);
+      passwordError = Validator.password(passwordController.text);
+    });
+    return emailError == null && passwordError == null;
+  }
 
   // ================= LOGIN =================
   Future<void> _handleLogin() async {
-    if (!_validate()) return; // ⬅️ INI YANG KURANG
+    if (!_validate()) return;
 
     final authProvider = context.read<AuthProvider>();
-
     setState(() => isLoading = true);
 
     try {
@@ -51,7 +50,6 @@ class _LoginPageState extends State<LoginPage> {
 
       final role = authProvider.user!.role.toLowerCase().trim();
 
-      // ================= PINDAH SESUAI ROLE =================
       if (role == 'admin') {
         Navigator.pushReplacement(
           context,
@@ -68,13 +66,14 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(builder: (_) => const PeminjamDashboard()),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Role tidak dikenali')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Role tidak dikenali')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -82,107 +81,149 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: AppColor.primary,
-      body: Column(
-        children: [
-          // ===== HEADER =====
-          Container(
-            height: 260,
-            width: double.infinity,
-            color: AppColor.primary,
-            child: Center(
-              child: Image.asset(
-                'assets/images/bopin.png',
-                width: 160,
-              ),
-            ),
-          ),
-
-          // ===== FORM =====
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(32),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ===== HEADER =====
+            SizedBox(
+              height: size.height * 0.3,
+              child: Center(
+                child: Image.asset(
+                  'assets/images/bopin.png',
+                  width: size.width * 0.45,
                 ),
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Email'),
-                    const SizedBox(height: 6),
-                    _inputBox(
-                      controller: emailController,
-                      error: emailError,
-                    ),
+            ),
 
-                    const SizedBox(height: 22),
-                    const Text('Kata Sandi'),
-                    const SizedBox(height: 6),
-                    _inputBox(
-                      controller: passwordController,
-                      isPassword: true,
-                      error: passwordError,
-                    ),
-
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 46,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : _handleLogin,
-                        child: isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : const Text('Masuk'),
-                      ),
+            // ===== FORM =====
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(50),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 50),
+
+                      const Text('Email'),
+                      const SizedBox(height: 8),
+                      _inputField(
+                        controller: emailController,
+                        hint: 'Masukkan email',
+                        icon: Icons.email_outlined,
+                        error: emailError,
+                      ),
+
+                      const SizedBox(height: 30),
+                      const Text('Kata Sandi'),
+                      const SizedBox(height: 8),
+                      _inputField(
+                        controller: passwordController,
+                        hint: 'Masukkan kata sandi',
+                        icon: Icons.lock_outline,
+                        error: passwordError,
+                        isPassword: true,
+                        isPasswordVisible: isPasswordVisible,
+                        onTogglePassword: () {
+                          setState(() {
+                            isPasswordVisible = !isPasswordVisible;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 130),
+
+                      Center(
+                        child: SizedBox(
+                          width: 250,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : _handleLogin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColor.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : const Text(
+                                    'Masuk',
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-// ================= INPUT =================
-Widget _inputBox({
+// ================= INPUT FIELD =================
+Widget _inputField({
   required TextEditingController controller,
-  bool isPassword = false,
+  required String hint,
+  required IconData icon,
   String? error,
+  bool isPassword = false,
+  bool isPasswordVisible = false,
+  VoidCallback? onTogglePassword,
 }) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F3F5),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: TextField(
-          controller: controller,
-          obscureText: isPassword,
-          decoration: const InputDecoration(border: InputBorder.none),
-        ),
-      ),
-      if (error != null)
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            error,
-            style: const TextStyle(color: Colors.red, fontSize: 12),
+      TextField(
+        controller: controller,
+        obscureText: isPassword && !isPasswordVisible,
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixIcon: Icon(icon),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: onTogglePassword,
+                )
+              : null,
+          errorText: error,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Colors.grey),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColor.primary, width: 1.5),
           ),
         ),
+      ),
     ],
   );
 }

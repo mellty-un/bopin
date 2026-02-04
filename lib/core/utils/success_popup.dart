@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 
 class SuccessPopup {
-  static void show(BuildContext context, String message) {
+  /// Tambahkan parameter `onClose` untuk callback setelah popup ditutup
+  static void show(BuildContext context, String message, {VoidCallback? onClose}) {
     showDialog(
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black.withOpacity(0.7),
       builder: (ctx) {
+        // Auto close setelah 2 detik
         Future.delayed(const Duration(seconds: 2), () {
-          if (ctx.mounted) Navigator.pop(ctx);
+          if (ctx.mounted) {
+            Navigator.pop(ctx); // tutup popup
+            if (onClose != null) onClose(); // jalankan callback jika ada
+          }
         });
+
         return Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,

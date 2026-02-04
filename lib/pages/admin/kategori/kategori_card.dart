@@ -5,12 +5,14 @@ class KategoriCard extends StatefulWidget {
   final Map<String, dynamic> kategori;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final double? height; 
 
   const KategoriCard({
     super.key,
     required this.kategori,
     required this.onEdit,
     required this.onDelete,
+    this.height,
   });
 
   @override
@@ -26,15 +28,11 @@ class _KategoriCardState extends State<KategoriCard> {
       isEditActive = true;
       isDeleteActive = false;
     });
-    
+
     widget.onEdit();
-    
+
     await Future.delayed(const Duration(milliseconds: 300));
-    if (mounted) {
-      setState(() {
-        isEditActive = false;
-      });
-    }
+    if (mounted) setState(() => isEditActive = false);
   }
 
   void _handleDelete() async {
@@ -42,125 +40,71 @@ class _KategoriCardState extends State<KategoriCard> {
       isDeleteActive = true;
       isEditActive = false;
     });
-    
+
     widget.onDelete();
-    
+
     await Future.delayed(const Duration(milliseconds: 300));
-    if (mounted) {
-      setState(() {
-        isDeleteActive = false;
-      });
-    }
+    if (mounted) setState(() => isDeleteActive = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final id = widget.kategori['kategori_id']?.toString() ??
-        widget.kategori['id']?.toString() ??
-        widget.kategori['id_kategori']?.toString() ??
-        UniqueKey().toString();
-
     return Container(
+      height: widget.height,
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        
+        border: Border.all(color: AppColor.primary, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12.withOpacity(0.15),
+            color: Colors.black.withOpacity(0.15),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: AppColor.primary,
-          width: 1,
-        )
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.kategori["nama_kategori"] ?? 
-                  widget.kategori["name"] ?? 
+            child: Text(
+              widget.kategori["nama_kategori"] ??
+                  widget.kategori["name"] ??
                   "Unknown",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 24,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 24,
+                color: Colors.black,
+              ),
             ),
           ),
 
-          Container(
-            
-            decoration: BoxDecoration(
-              
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white),
-            ),
-            child: Column(
-              children: [
-                // Tombol Edit
-                InkWell(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(14),
-                    topRight: Radius.circular(14),
-                  ),
-                  onTap: _handleEdit,
-                  child: Container(
-                    width: 46,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isEditActive ? Colors.white: Colors.white,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(14),
-                        topRight: Radius.circular(14),
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.edit,
-                      size: 22,
-                      color: isEditActive ? Colors.white : Colors.black54,
-                    ),
-                  ),
-                ),
+          const SizedBox(width: 12),
 
-
-                InkWell(
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(14),
-                    bottomRight: Radius.circular(14),
-                  ),
-                  onTap: _handleDelete,
-                  child: Container(
-                    width: 46,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isDeleteActive ?Colors.white : Colors.white,
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(14),
-                        bottomRight: Radius.circular(14),
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.delete,
-                      size: 22,
-                      color: isDeleteActive ? Colors.white : Colors.black87,
-                    ),
-                  ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              InkWell(
+                onTap: _handleEdit,
+                child: Container(
+                  width: 30,
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Icon(Icons.edit, size: 22),
                 ),
-              ],
-            ),
+              ),
+              InkWell(
+                onTap: _handleDelete,
+                child: Container(
+                  width: 30,
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Icon(Icons.delete, size: 22),
+                ),
+              ),
+            ],
           ),
         ],
       ),

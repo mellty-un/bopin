@@ -1,4 +1,3 @@
-import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengembalian/pengembalian_peminjam_page.dart';
 import 'package:flutter/material.dart';
 
 class PengajuanCard extends StatefulWidget {
@@ -35,19 +34,8 @@ class _PengajuanCardState extends State<PengajuanCard> {
     }
   }
 
-  void _navigasiKePengembalian() {
-    // Navigasi ke halaman pengembalian tanpa kirim data dulu
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const PengembaliaPeminjamnPage(),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Fix null safety untuk semua field
     final status = widget.data['status_peminjaman'] as String? ?? 'Menunggu';
     final alat = widget.data['alat'] as Map<String, dynamic>? ?? {};
     final tgl = widget.data['tanggal'] as String? ?? '-';
@@ -97,8 +85,8 @@ class _PengajuanCardState extends State<PengajuanCard> {
                   ],
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: statusColor(status),
                     borderRadius: BorderRadius.circular(20),
@@ -150,9 +138,11 @@ class _PengajuanCardState extends State<PengajuanCard> {
                         (e) => Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(e.key, style: const TextStyle(fontSize: 12)),
+                              Text(e.key,
+                                  style: const TextStyle(fontSize: 12)),
                               Text('${e.value}',
                                   style: const TextStyle(fontSize: 12)),
                             ],
@@ -165,7 +155,8 @@ class _PengajuanCardState extends State<PengajuanCard> {
                         children: [
                           Text(
                             'Tanggal Pengembalian',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -182,28 +173,6 @@ class _PengajuanCardState extends State<PengajuanCard> {
                       ),
                     ],
                   ],
-                ),
-              ),
-            ],
-
-            // Button hanya muncul jika status Disetujui
-            // PERBAIKAN: Hanya navigasi, tidak kirim data
-            if (status == 'Disetujui') ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _navigasiKePengembalian,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff36536B),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Ajukan Pengembalian',
-                    style: TextStyle(color: Colors.white),
-                  ),
                 ),
               ),
             ],

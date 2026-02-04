@@ -29,25 +29,31 @@ class _RiwayatCardState extends State<RiwayatCard> {
     return '${d.day}/${d.month}/${d.year}';
   }
 
+  // ===== WARNA BACKGROUND STATUS =====
   Color _statusBg(String status) {
     switch (status.toLowerCase()) {
-      case 'dikembalikan':
-        return const Color(0xFFD1FAE5);
       case 'dipinjam':
-        return const Color(0xFFFEF3C7);
+        return const Color(0xFFFFF3C4); // kuning muda
+      case 'dikembalikan':
+        return const Color(0xFFD1FAE5); // hijau muda
+      case 'ditolak':
+        return const Color(0xFFFEE2E2); // merah muda
       default:
-        return const Color(0xFFE5E7EB);
+        return const Color(0xFFE5E7EB); // abu
     }
   }
 
+  // ===== WARNA TEXT STATUS =====
   Color _statusText(String status) {
     switch (status.toLowerCase()) {
-      case 'dikembalikan':
-        return const Color(0xFF047857);
       case 'dipinjam':
-        return const Color(0xFFD97706);
+        return const Color(0xFFD97706); // kuning tua
+      case 'dikembalikan':
+        return const Color(0xFF047857); // hijau tua
+      case 'ditolak':
+        return const Color(0xFFB91C1C); // merah tua
       default:
-        return const Color(0xFF6B7280);
+        return const Color(0xFF6B7280); // abu
     }
   }
 
@@ -79,7 +85,7 @@ class _RiwayatCardState extends State<RiwayatCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            /// ===== HEADER =====
+            // ===== HEADER =====
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -91,8 +97,8 @@ class _RiwayatCardState extends State<RiwayatCard> {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: _statusBg(status),
                     borderRadius: BorderRadius.circular(12),
@@ -111,13 +117,13 @@ class _RiwayatCardState extends State<RiwayatCard> {
 
             const SizedBox(height: 6),
 
-            /// ===== TANGGAL =====
+            // ===== TANGGAL PINJAM =====
             Text(
               'Pinjam : $tglPinjam',
               style: const TextStyle(fontSize: 13),
             ),
 
-            /// ===== DETAIL =====
+            // ===== DETAIL =====
             if (isExpanded) ...[
               const SizedBox(height: 12),
               const Divider(),
@@ -135,7 +141,7 @@ class _RiwayatCardState extends State<RiwayatCard> {
 
             const SizedBox(height: 14),
 
-            /// ===== BUTTON (SELALU ADA) =====
+            // ===== BUTTON =====
             Row(
               children: [
                 Expanded(
@@ -155,7 +161,6 @@ class _RiwayatCardState extends State<RiwayatCard> {
                 ),
               ],
             ),
-
           ],
         ),
       ),

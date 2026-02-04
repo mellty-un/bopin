@@ -15,16 +15,15 @@ class _LogAktivitasState extends State<LogAktivitas> {
   final TextEditingController _searchController = TextEditingController();
 
   String selectedFilter = "Semua";
-  bool isLoading = true; // Tambah loading state
+  bool isLoading = true; 
 
-  // List<Map<String, dynamic>> aktivitasList = []; // Data dummy dihapus
   List<Map<String, dynamic>> aktivitasList = [];
   List<Map<String, dynamic>> filteredAktivitasList = [];
 
   @override
   void initState() {
     super.initState();
-    _loadAktivitas(); // Load data dari Supabase
+    _loadAktivitas(); 
     _searchController.addListener(_filterAktivitas);
   }
 
@@ -71,24 +70,35 @@ class _LogAktivitasState extends State<LogAktivitas> {
     super.dispose();
   }
 
-  void _filterAktivitas() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      filteredAktivitasList = aktivitasList.where((aktivitas) {
-        final name = aktivitas['name']?.toString().toLowerCase() ?? '';
-        final alat = aktivitas['alat']?.toString().toLowerCase() ?? '';
-        final status = aktivitas['status']?.toString().toLowerCase() ?? '';
-        final role = aktivitas['role']?.toString().toLowerCase() ?? '';
+ void _filterAktivitas() {
+  final query = _searchController.text.toLowerCase();
 
-        bool matchesSearch =
-            name.contains(query) || alat.contains(query) || status.contains(query) || role.contains(query);
-        bool matchesFilter = selectedFilter == "Semua" ||
-            aktivitas['status'] == selectedFilter;
+  setState(() {
+    filteredAktivitasList = aktivitasList.where((aktivitas) {
+      final name = (aktivitas['name'] ?? '').toString().toLowerCase();
+      final alat = (aktivitas['alat'] ?? '').toString().toLowerCase();
+      final role = (aktivitas['role'] ?? '').toString().toLowerCase();
+      final status = (aktivitas['status'] ?? '').toString().toLowerCase();
 
-        return matchesSearch && matchesFilter;
-      }).toList();
-    });
-  }
+      // SEARCH
+      final matchesSearch =
+          name.contains(query) ||
+          alat.contains(query) ||
+          role.contains(query) ||
+          status.contains(query);
+
+      // FILTER STATUS
+      bool matchesFilter;
+      if (selectedFilter == "Semua") {
+        matchesFilter = true;
+      } else {
+        matchesFilter = status == selectedFilter.toLowerCase();
+      }
+
+      return matchesSearch && matchesFilter;
+    }).toList();
+  });
+}
 
   void _applyFilter(String filter) {
     setState(() {

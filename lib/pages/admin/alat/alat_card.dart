@@ -5,7 +5,7 @@ class AlatCard extends StatefulWidget {
   final String namaAlat;
   final String kategori;
   final String kondisi;
-  final String? imageUrl; // ← ISI: NAMA FILE dari DB
+  final String? imageUrl;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
@@ -50,178 +50,151 @@ class _AlatCardState extends State<AlatCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 220,
-      height: 190,
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF36536B), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          /// NAMA + KONDISI
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.namaAlat,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _getKondisiColor(widget.kondisi),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    widget.kondisi,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
+    return AspectRatio(
+      aspectRatio: 220 / 190, // ⬅️ ukuran visual TETAP SAMA
+      child: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF36536B), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            /// NAMA + KONDISI
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.namaAlat,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          /// KATEGORI
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-            child: Text(
-              widget.kategori,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-
-          /// GAMBAR - DIUBAH AGAR CENTER
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12),
-              
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.grey[50],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: _buildImage(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getKondisiColor(widget.kondisi),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      widget.kondisi,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
 
-          /// BUTTON
-          Container(
-            padding: const EdgeInsets.all(10),
-            child: Row(
-              children: [
-                _buildActionButton(
-                  icon: Icons.edit,
-                  label: 'Edit',
-                  onTap: widget.onEdit,
-                ),
-                const SizedBox(width: 8),
-                _buildActionButton(
-                  icon: Icons.delete,
-                  label: 'Delete',
-                  onTap: widget.onDelete,
-                ),
-              ],
+            /// KATEGORI
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+              child: Text(
+                widget.kategori,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+
+            /// GAMBAR
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[50],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: _buildImage(),
+                ),
+              ),
+            ),
+
+            /// BUTTON
+            Container(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: [
+                  _buildActionButton(
+                    icon: Icons.edit,
+                    label: 'Edit',
+                    onTap: widget.onEdit,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildActionButton(
+                    icon: Icons.delete,
+                    label: 'Delete',
+                    onTap: widget.onDelete,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /* ================= IMAGE - DIUBAH AGAR CENTER ================= */
+  /* ================= IMAGE ================= */
 
   Widget _buildImage() {
     if (_imageUrl.isEmpty) {
       return _buildNoImagePlaceholder();
     }
 
-    return Container(
-      color: Colors.white, // Background putih untuk kontras
-      child: Center( // WRAP DENGAN CENTER
-        child: Container(
-          constraints: const BoxConstraints(
-            maxWidth: 160, // Batas lebar maksimal
-            maxHeight: 100, // Batas tinggi maksimal
-          ),
-          child: Image.network(
-            _imageUrl,
-            fit: BoxFit.contain,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                      : null,
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              print('Error loading image: $error, URL: $_imageUrl');
-              return _buildErrorPlaceholder();
-            },
-          ),
-        ),
+    return Center(
+      child: Image.network(
+        _imageUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => _buildErrorPlaceholder(),
       ),
     );
   }
 
   Widget _buildNoImagePlaceholder() {
-    return Container(
-      color: Colors.grey[100],
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.photo, size: 36, color: Colors.grey),
-            SizedBox(height: 6),
-            Text('No Image', style: TextStyle(fontSize: 11, color: Colors.grey)),
-          ],
-        ),
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.photo, size: 36, color: Colors.grey),
+          SizedBox(height: 6),
+          Text('No Image', style: TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
       ),
     );
   }
 
   Widget _buildErrorPlaceholder() {
-    return Container(
-      color: Colors.grey[100],
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.broken_image, size: 36, color: Colors.grey),
-            SizedBox(height: 6),
-            Text('Failed to load', style: TextStyle(fontSize: 11, color: Colors.grey)),
-          ],
-        ),
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.broken_image, size: 36, color: Colors.grey),
+          SizedBox(height: 6),
+          Text('Failed to load',
+              style: TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
       ),
     );
   }

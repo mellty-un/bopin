@@ -1,3 +1,4 @@
+import 'package:aplikasi_peminjaman_alat/pages/admin/denda/denda_pege.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/alat/alat_peminjam.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/dashboard/peminjam_dashboard.dart';
 import 'package:aplikasi_peminjaman_alat/pages/peminjam/pengajuan/pengajuan_page.dart';
@@ -164,6 +165,7 @@ class _SideBarState extends State<SideBar> {
         _menuItem(title: "Alat", page: "Alat", onTap: () => _go(const AlatPage())),
         _menuItem(title: "Kelola Pengguna", page: "Kelola Pengguna", onTap: () => _go(const KelolaPenggunaPage())),
         _menuItem(title: "Kategori", page: "Kategori", onTap: () => _go(const KelolaKategoriPage())),
+        _menuItem(title: "Denda", page: "Denda", onTap: () => _go(const KelolaDendaPage())),
         _menuItem(title: "Riwayat", page: "Riwayat", onTap: () => _go(const RiwayatPage())),
         _menuItem(title: "Log Aktivitas", page: "Log Aktivitas", onTap: () => _go(const LogAktivitas())),
       ];

@@ -112,7 +112,7 @@ class _PengajuanPageState extends State<PengajuanPage> {
                     ),
                     const SizedBox(width: 16),
                     Text(
-                      "Pengajuan",
+                      "Pengajuan Peminjaman",
                       style: TextStyle(
                         fontSize: isSmallScreen ? 20 : 24,
                         fontWeight: FontWeight.bold,

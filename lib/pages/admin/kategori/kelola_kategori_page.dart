@@ -352,6 +352,7 @@ class _KelolaKategoriPageState extends State<KelolaKategoriPage> {
                         kategori: kategori,
                         onEdit: () => _showAddEditDialog(kategori: kategori),
                         onDelete: () => _deleteKategori(kategori),
+                          height: 100,
                       );
                     }).toList(),
                   ),

@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 
 class PengembalianCard extends StatelessWidget {
   final String nama;
-  final String tanggal; 
+  final String tanggal;
   final String status;
   final VoidCallback onTap;
   final List<DetailPeminjaman> alatList;
   final String tanggalPeminjaman;
   final String tanggalPengembalian;
-  final String tanggalDikembalikan;
-  final int dendaKerusakan;
-  final int totalDenda;
+  final String? tanggalDikembalikan; // nullable
+  final int? dendaKerusakan; // nullable
+  final int? totalDenda; // nullable
 
   const PengembalianCard({
     super.key,
@@ -19,12 +19,12 @@ class PengembalianCard extends StatelessWidget {
     required this.tanggal,
     required this.status,
     required this.onTap,
-    required this.alatList, 
+    required this.alatList,
     required this.tanggalPeminjaman,
     required this.tanggalPengembalian,
-    required this.tanggalDikembalikan,
-    required this.dendaKerusakan,
-    required this.totalDenda,
+    this.tanggalDikembalikan,
+    this.dendaKerusakan,
+    this.totalDenda,
   });
 
   @override
@@ -94,7 +94,7 @@ class PengembalianCard extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // Tampilkan list alat
+            // List alat
             Column(
               children: alatList.map((alat) {
                 return Row(
@@ -106,6 +106,20 @@ class PengembalianCard extends StatelessWidget {
                 );
               }).toList(),
             ),
+
+            const SizedBox(height: 10),
+
+            // Denda
+            if ((dendaKerusakan ?? 0) > 0 || (totalDenda ?? 0) > 0)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if ((dendaKerusakan ?? 0) > 0)
+                    Text("Denda Kerusakan: Rp ${dendaKerusakan ?? 0}"),
+                  if ((totalDenda ?? 0) > 0)
+                    Text("Total Denda: Rp ${totalDenda ?? 0}"),
+                ],
+              ),
           ],
         ),
       ),

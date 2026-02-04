@@ -56,10 +56,11 @@ class _PengembalianPageState extends State<PengembalianPage> {
           .single();
 
       final tglKembali = DateTime.parse(peminjaman['tgl_kembali']);
-      
+
       // Handle nullable tanggalDikembalikan dengan null check
-      final tglDikembalikan = (model.tanggalDikembalikan != null && 
-                               model.tanggalDikembalikan!.isNotEmpty)
+      final tglDikembalikan =
+          (model.tanggalDikembalikan != null &&
+              model.tanggalDikembalikan!.isNotEmpty)
           ? _parseTanggal(model.tanggalDikembalikan!)
           : DateTime.now();
 
@@ -97,7 +98,7 @@ class _PengembalianPageState extends State<PengembalianPage> {
 
       // Reload data
       await _loadPengembalian();
-      
+
       // PERBAIKAN: Tampilkan success popup
       if (mounted) {
         SuccessPopup.show(context, "Pengembalian berhasil diproses");
@@ -125,7 +126,7 @@ class _PengembalianPageState extends State<PengembalianPage> {
 
       // Reload data
       await _loadPengembalian();
-      
+
       // PERBAIKAN: Tampilkan success popup
       if (mounted) {
         SuccessPopup.show(context, "Pengembalian ditolak");
@@ -164,8 +165,9 @@ class _PengembalianPageState extends State<PengembalianPage> {
     List<PengembalianModel> filtered = _data;
 
     if (selectedFilter != "Semua") {
-      filtered =
-          filtered.where((item) => item.status == selectedFilter).toList();
+      filtered = filtered
+          .where((item) => item.status == selectedFilter)
+          .toList();
     }
 
     final searchText = _searchController.text.toLowerCase();
@@ -204,8 +206,10 @@ class _PengembalianPageState extends State<PengembalianPage> {
                     const SizedBox(width: 16),
                     const Text(
                       "Pengembalian",
-                      style:
-                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -258,49 +262,44 @@ class _PengembalianPageState extends State<PengembalianPage> {
                 child: loading
                     ? const Center(child: CircularProgressIndicator())
                     : filteredData.isEmpty
-                        ? const Center(child: Text("Tidak ada data"))
-                        : ListView.builder(
-                            itemCount: filteredData.length,
-                            itemBuilder: (context, index) {
-                              final data = filteredData[index];
-                              return PengembalianCard(
+                    ? const Center(child: Text("Tidak ada data"))
+                    : ListView.builder(
+                        itemCount: filteredData.length,
+                        itemBuilder: (context, index) {
+                          final data = filteredData[index];
+                          return PengembalianCard(
+                            nama: data.nama,
+                            tanggal: data.tanggalPeminjaman,
+                            status: data.status,
+                            onTap: () => showDialog(
+                              context: context,
+                              builder: (_) => PengembalianDetailDialog(
+                                id: data.id,
                                 nama: data.nama,
-                                tanggal: data.tanggalPeminjaman,
+                                tanggalDiajukan: data.tanggalPeminjaman,
                                 status: data.status,
-                                onTap: () => showDialog(
-                                  context: context,
-                                  builder: (_) => PengembalianDetailDialog(
-                                    id: data.id,
-                                    nama: data.nama,
-                                    tanggalDiajukan: data.tanggalPeminjaman,
-                                    status: data.status,
-                                    alatList: data.alatList,
-                                    tanggalPeminjaman: data.tanggalPeminjaman,
-                                    tanggalPengembalian:
-                                        data.tanggalPengembalian,
-                                    tanggalDikembalikan:
-                                        data.tanggalDikembalikan ?? '',
-                                    dendaKerusakan: data.dendaKerusakan,
-                                    totalDenda: data.totalDenda,
-                                    onProsesSuccess: (status) {
-                                      // PERBAIKAN: Proses berdasarkan status
-                                      if (status == "Selesai") {
-                                        _updateStatusTerima(data);
-                                      } else {
-                                        _updateStatusTolak(data);
-                                      }
-                                    },
-                                  ),
-                                ),
                                 alatList: data.alatList,
                                 tanggalPeminjaman: data.tanggalPeminjaman,
                                 tanggalPengembalian: data.tanggalPengembalian,
-                                tanggalDikembalikan: data.tanggalDikembalikan ?? '',
-                                dendaKerusakan: data.dendaKerusakan,
-                                totalDenda: data.totalDenda,
-                              );
-                            },
-                          ),
+                                tanggalDikembalikan:
+                                    data.tanggalDikembalikan ?? '',
+                                onProsesSuccess: (status) {
+                                  if (status == "Selesai")
+                                    _updateStatusTerima(data);
+                                  else
+                                    _updateStatusTolak(data);
+                                },
+                              ),
+                            ),
+                            alatList: data.alatList,
+                            tanggalPeminjaman: data.tanggalPeminjaman,
+                            tanggalPengembalian: data.tanggalPengembalian,
+                            tanggalDikembalikan: data.tanggalDikembalikan ?? '',
+                            dendaKerusakan: data.dendaKerusakan,
+                            totalDenda: data.totalDenda,
+                          );
+                        },
+                      ),
               ),
             ],
           ),
